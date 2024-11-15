@@ -2,6 +2,6 @@
 _extends: .github
 repository:
   name: aws-eks-argocd
-  description: This component is responsible for provisioning [Argo CD](https://argoproj
+  description: This component is responsible for provisioning Argo CD
   homepage: https://cloudposse.com/accelerate
   topics: terraform, terraform-component
