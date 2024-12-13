@@ -6,7 +6,7 @@ tags:
   - provider/helm
 ---
 
-# Component: `eks`
+# Component: `eks-argocd`
 
 This component is responsible for provisioning [Argo CD](https://argoproj.github.io/cd/).
 
