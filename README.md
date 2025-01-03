@@ -340,7 +340,7 @@ manifests: plat/use2-dev/apps/my-preview-acme-app/manifests
 Here's a configuration for letting argocd send notifications back to GitHub:
 
 1. [Create GitHub PAT](https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token)
-   with scope `repo:status`
+  with scope `repo:status`
 2. Save the PAT to SSM `/argocd/notifications/notifiers/common/github-token`
 3. Use this atmos stack configuration
 
@@ -359,7 +359,7 @@ components:
 Here's a configuration Github notify ArgoCD on commit:
 
 1. [Create GitHub PAT](https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token)
-   with scope `admin:repo_hook`
+  with scope `admin:repo_hook`
 2. Save the PAT to SSM `/argocd/github/api_key`
 3. Use this atmos stack configuration
 
@@ -424,13 +424,13 @@ components:
 ArgoCD supports Slack notifications on application deployments.
 
 1. In order to enable Slack notifications, first create a Slack Application following the
-   [ArgoCD documentation](https://argocd-notifications.readthedocs.io/en/stable/services/slack/).
+  [ArgoCD documentation](https://argocd-notifications.readthedocs.io/en/stable/services/slack/).
 1. Create an OAuth token for the new Slack App
 1. Save the OAuth token to AWS SSM Parameter Store in the same account and region as Github tokens. For example,
-   `core-use2-auto`
+  `core-use2-auto`
 1. Add the app to the chosen Slack channel. _If not added, notifications will not work_
 1. For this component, enable Slack integrations for each Application with `var.slack_notifications_enabled` and
-   `var.slack_notifications`:
+  `var.slack_notifications`:
 
 ```yaml
 slack_notifications_enabled: true
@@ -439,7 +439,7 @@ slack_notifications:
 ```
 
 6. In the `argocd-repo` component, set `var.slack_notifications_channel` to the name of the Slack notification channel
-   to add the relevant ApplicationSet annotations
+  to add the relevant ApplicationSet annotations
 
 ## Troubleshooting
 

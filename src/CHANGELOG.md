@@ -10,22 +10,22 @@ This is a bug fix and feature enhancement update. There are few actions necessar
 ## Upgrade actions
 
 1. Update atmos stack yaml config
-   1. Add `github_default_notifications_enabled: true`
-   2. Add `github_webhook_enabled: true`
-   3. Remove `notifications_triggers`
-   4. Remove `notifications_templates`
-   5. Remove `notifications_notifiers`
+  1. Add `github_default_notifications_enabled: true`
+  2. Add `github_webhook_enabled: true`
+  3. Remove `notifications_triggers`
+  4. Remove `notifications_templates`
+  5. Remove `notifications_notifiers`
 
 ```diff
  components:
-   terraform:
-     argocd:
-       settings:
-         spacelift:
-           workspace_enabled: true
-       metadata:
-         component: eks/argocd
-       vars:
+  terraform:
+    argocd:
+      settings:
+        spacelift:
+          workspace_enabled: true
+      metadata:
+        component: eks/argocd
+      vars:
 +        github_default_notifications_enabled: true
 +        github_webhook_enabled: true
 -        notifications_triggers:
@@ -49,7 +49,7 @@ This is a bug fix and feature enhancement update. There are few actions necessar
 ```
 
 2. Move secrets from `/argocd/notifications/notifiers/service_webhook_github-commit-status/github-token` to
-   `argocd/notifications/notifiers/common/github-token`
+  `argocd/notifications/notifiers/common/github-token`
 
 ```bash
 chamber read -q argocd/notifications/notifiers/service_webhook_github-commit-status github-token | chamber write argocd/notifications/notifiers/common github-token
