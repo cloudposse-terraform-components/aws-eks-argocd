@@ -1,8 +1,8 @@
-## Components PR []()
+## `aws-eks-argocd` Component PR [#16](https://github.com/cloudposse-terraform-components/aws-eks-argocd/pull/16)
 
 Corrected the spelling of "succeded" to "succeeded" in the `on-deploy-succeded` notification. As a result, the `argocd-repo` component will need to be updated to correct the same spelling in the Argo CD desired state repository application set.
 
-See the [PR for argocd-repo]()
+See the [PR for argocd-repo](https://github.com/cloudposse-terraform-components/aws-argocd-github-repo/pull/17)
 
 ## Components PR [#905](https://github.com/cloudposse/terraform-aws-components/pull/905)
 
