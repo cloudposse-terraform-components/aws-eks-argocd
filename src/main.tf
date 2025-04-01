@@ -51,6 +51,13 @@ locals {
         value = data.aws_ssm_parameter.slack_notifications[0].value
         type  = "string"
       }
+    ] : [],
+    var.github_notifications_app_enabled ? [
+      {
+        name  = "notifications.secret.items.github-privateKey"
+        value = data.aws_ssm_parameter.github_notifications_app_private_key[0].value
+        type  = "string"
+      }
     ] : []
   ))
   regional_service_discovery_domain = "${module.this.environment}.${module.dns_gbl_delegated.outputs.default_domain_name}"

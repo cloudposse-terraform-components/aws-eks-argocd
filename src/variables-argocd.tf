@@ -1,4 +1,4 @@
-// ArgoCD variables
+# ArgoCD variables
 
 variable "alb_group_name" {
   type        = string

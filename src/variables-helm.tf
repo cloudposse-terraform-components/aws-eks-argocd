@@ -1,4 +1,4 @@
-// Standard Helm Chart variables
+# Standard Helm Chart variables
 
 variable "region" {
   description = "AWS Region."

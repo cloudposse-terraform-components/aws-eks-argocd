@@ -18,11 +18,11 @@ server:
 
   ingress:
     enabled: true
+    ingressClassName: alb-argocd-ext
     annotations:
       cert-manager.io/cluster-issuer: ${cert_issuer}
       external-dns.alpha.kubernetes.io/hostname: ${ingress_host}
       external-dns.alpha.kubernetes.io/ttl: "60"
-      kubernetes.io/ingress.class: alb
 %{ if alb_group_name != "" ~}
       alb.ingress.kubernetes.io/group.name: ${alb_group_name}
 %{ endif ~}
