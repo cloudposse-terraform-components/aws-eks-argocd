@@ -4,6 +4,31 @@ variable "github_default_notifications_enabled" {
   description = "Enable default GitHub commit statuses notifications (required for CD sync mode)"
 }
 
+# GitHub App Authentication for Notifications
+variable "github_notifications_app_enabled" {
+  type        = bool
+  description = "Whether to use GitHub App authentication for notifications instead of PAT"
+  default     = false
+}
+
+variable "github_notifications_app_id" {
+  type        = string
+  description = "The ID of the GitHub App to use for notifications authentication"
+  default     = null
+}
+
+variable "github_notifications_app_installation_id" {
+  type        = string
+  description = "The Installation ID of the GitHub App to use for notifications authentication"
+  default     = null
+}
+
+variable "ssm_github_notifications_app_private_key" {
+  type        = string
+  description = "SSM path to the GitHub App private key for notifications"
+  default     = "/argocd/github_notifications/app_private_key"
+}
+
 variable "notifications_templates" {
   description = <<-EOT
   Notification Templates to configure.

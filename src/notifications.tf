@@ -12,6 +12,12 @@ data "aws_ssm_parameter" "slack_notifications" {
   with_decryption = true
 }
 
+data "aws_ssm_parameter" "github_notifications_app_private_key" {
+  count           = local.github_notifications_enabled && var.github_notifications_app_enabled ? 1 : 0
+  name            = var.ssm_github_notifications_app_private_key
+  with_decryption = true
+}
+
 module "notifications_templates" {
   source  = "cloudposse/config/yaml//modules/deepmerge"
   version = "1.0.2"
@@ -21,9 +27,18 @@ module "notifications_templates" {
   maps = [
     var.notifications_templates,
     local.github_notifications_enabled ? {
-      app-deploy-succeded = {
+      app-deploy-succeeded = {
         message = "Application {{ .app.metadata.name }} is now running new version of deployments manifests."
-        webhook = {
+        github = var.github_notifications_app_enabled ? {
+          repoURLPath  = "{{call .repo.FullNameByRepoURL .app.metadata.annotations.app_repository}}"
+          revisionPath = "{{.app.metadata.annotations.app_commit}}"
+          status = {
+            state     = "success"
+            label     = "continuous-delivery/{{.app.metadata.name}}"
+            targetURL = "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+          }
+        } : null
+        webhook = var.github_notifications_app_enabled ? null : {
           app-repo-github-commit-status = {
             for k, v in local.notifications_template_app_github_commit_status :
             k => k == "body" ? jsonencode(merge(v, { state = "success" })) : tostring(v)
@@ -36,7 +51,16 @@ module "notifications_templates" {
       }
       app-deploy-started = {
         message = "Application {{ .app.metadata.name }} is now running new version of deployments manifests."
-        webhook = {
+        github = var.github_notifications_app_enabled ? {
+          repoURLPath  = "{{call .repo.FullNameByRepoURL .app.metadata.annotations.app_repository}}"
+          revisionPath = "{{.app.metadata.annotations.app_commit}}"
+          status = {
+            state     = "pending"
+            label     = "continuous-delivery/{{.app.metadata.name}}"
+            targetURL = "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+          }
+        } : null
+        webhook = var.github_notifications_app_enabled ? null : {
           app-repo-github-commit-status = {
             for k, v in local.notifications_template_app_github_commit_status :
             k => k == "body" ? jsonencode(merge(v, { state = "pending" })) : tostring(v)
@@ -49,7 +73,16 @@ module "notifications_templates" {
       }
       app-deploy-failed = {
         message = "Application {{ .app.metadata.name }} failed deploying new version."
-        webhook = {
+        github = var.github_notifications_app_enabled ? {
+          repoURLPath  = "{{call .repo.FullNameByRepoURL .app.metadata.annotations.app_repository}}"
+          revisionPath = "{{.app.metadata.annotations.app_commit}}"
+          status = {
+            state     = "error"
+            label     = "continuous-delivery/{{.app.metadata.name}}"
+            targetURL = "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+          }
+        } : null
+        webhook = var.github_notifications_app_enabled ? null : {
           app-repo-github-commit-status = {
             for k, v in local.notifications_template_app_github_commit_status :
             k => k == "body" ? jsonencode(merge(v, { state = "error" })) : tostring(v)
@@ -134,10 +167,17 @@ module "notifications_notifiers" {
 
   maps = [
     var.notifications_notifiers,
-    local.github_notifications_enabled ? {
+    local.github_notifications_enabled && !var.github_notifications_app_enabled ? {
       webhook = {
         app-repo-github-commit-status    = local.notification_default_notifier_github_commit_status
         argocd-repo-github-commit-status = local.notification_default_notifier_github_commit_status
+      }
+    } : {},
+    local.github_notifications_enabled && var.github_notifications_app_enabled ? {
+      github = {
+        appID          = var.github_notifications_app_id
+        installationID = var.github_notifications_app_installation_id
+        privateKey     = "$github-privateKey"
       }
     } : {},
     local.slack_notifications_enabled ? {
@@ -150,6 +190,7 @@ locals {
   github_notifications_enabled = local.enabled && var.github_default_notifications_enabled
   slack_notifications_enabled  = local.enabled && var.slack_notifications_enabled
 
+  # If we are using GitHub PATs, we need to use a webhook to send notifications
   notification_default_notifier_github_commit_status = {
     url = "https://api.github.com"
     headers = [
@@ -205,13 +246,15 @@ locals {
   }
 
   ## Define notifier service object with placeholders as values. This is ArgoCD convention
-  notifications_notifiers_ssm_configs_keys = {
-    for key, value in data.aws_ssm_parameters_by_path.argocd_notifications :
-    key => zipmap(
-      [for name in value.names : trimprefix(name, local.notifications_notifiers_ssm_path[key])],
-      [for name in value.names : format("$%s_%s", key, trimprefix(name, local.notifications_notifiers_ssm_path[key]))]
-    )
-  }
+  notifications_notifiers_ssm_configs_keys = merge(
+    {
+      for key, value in data.aws_ssm_parameters_by_path.argocd_notifications :
+      key => zipmap(
+        [for name in value.names : trimprefix(name, local.notifications_notifiers_ssm_path[key])],
+        [for name in value.names : format("$%s_%s", key, trimprefix(name, local.notifications_notifiers_ssm_path[key]))]
+      )
+    }
+  )
 
   notifications_template_github_commit_status = {
     method = "POST"
@@ -240,11 +283,11 @@ locals {
         send    = ["app-deploy-started"]
       }
     ],
-    on-deploy-succeded = [
+    on-deploy-succeeded = [
       {
         when    = "app.status.operationState.phase == 'Succeeded' and app.status.health.status == 'Healthy'"
         oncePer = "app.status.sync.revision"
-        send    = ["app-deploy-succeded"]
+        send    = ["app-deploy-succeeded"]
       }
     ],
     on-deploy-failed = [
