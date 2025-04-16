@@ -1,0 +1,10 @@
+components:
+  terraform:
+    dns-delegated:
+      metadata:
+        component: dns-delegated
+      vars:
+        zone_config:
+          - subdomain: test
+            zone_name: example.net
+        request_acm_certificate: true

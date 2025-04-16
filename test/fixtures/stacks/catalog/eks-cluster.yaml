@@ -1,0 +1,94 @@
+components:
+  terraform:
+    eks/cluster:
+      metadata:
+        component: eks/cluster
+      vars:
+        enabled: true
+
+        # Cluster node configuration
+        aws_ssm_agent_enabled: true
+        managed_node_groups_enabled: true
+        node_groups: # will create node group for each item in map
+          main: # Karpenter is responsible for scaling nodes, but this default node group is required for deploying EKS Addons
+            # EKS AMI version to use, e.g. "1.16.13-20200821" (no "v").
+            ami_release_version: null
+            # Type of Amazon Machine Image (AMI) associated with the EKS Node Group
+            ami_type: AL2_x86_64
+            # Additional name attributes (e.g. `1`) for the node group
+            attributes: []
+            # will create 1 auto scaling group in each specified availability zone
+            # or all AZs with subnets if none are specified anywhere
+            availability_zones: null
+            # Whether to enable Node Group to scale its AutoScaling Group
+            cluster_autoscaler_enabled: false
+            # True (recommended) to create new node_groups before deleting old ones, avoiding a temporary outage
+            create_before_destroy: true
+            # Desired number of worker nodes when initially provisioned
+            desired_group_size: 4
+            # Enable disk encryption for the created launch template (if we aren't provided with an existing launch template)
+            disk_encryption_enabled: true
+            # Disk size in GiB for worker nodes. Terraform will only perform drift detection if a configuration value is provided.
+            disk_size: 20
+            # Set of instance types associated with the EKS Node Group. Terraform will only perform drift detection if a configuration value is provided.
+            instance_types:
+              - t3.small
+            kubernetes_labels: {}
+            kubernetes_taints: []
+            node_role_policy_arns: null
+            kubernetes_version: null
+            max_group_size: 4
+            min_group_size: 4
+            resources_to_tag:
+              - instance
+              - volume
+            tags: null
+
+        access_config:
+          authentication_mode: "API"
+          bootstrap_cluster_creator_admin_permissions: true
+
+        # Fargate profiles, required for Karpenter
+        # fargate_profiles:
+        #   karpenter:
+        #     kubernetes_namespace: karpenter
+        #     kubernetes_labels: null
+        # fargate_profile_iam_role_kubernetes_namespace_delimiter: "@"
+        # karpenter_iam_role_enabled: true
+
+        # Legacy settings
+        # The upstream component sets these to true by default to avoid breaking existing deployments,
+        # but new deployments should have these settings all disabled.
+        legacy_fargate_1_role_per_profile_enabled: false
+
+        addons_depends_on: true
+        deploy_addons_to_fargate: false
+
+        allow_ingress_from_vpc_accounts: []
+        public_access_cidrs: ["0.0.0.0/0"]
+        allowed_cidr_blocks: []
+        allowed_security_groups: []
+
+        enabled_cluster_log_types: []
+        apply_config_map_aws_auth: true
+        availability_zone_abbreviation_type: fixed
+        cluster_private_subnets_only: true
+        cluster_encryption_config_enabled: true
+        cluster_endpoint_private_access: true
+        cluster_endpoint_public_access: true
+        cluster_log_retention_period: 90
+        oidc_provider_enabled: true
+        cluster_kubernetes_version: "1.31"
+        addons:
+          vpc-cni:
+            addon_version: "v1.18.3-eksbuild.3"
+          kube-proxy:
+            addon_version: "v1.30.3-eksbuild.5"
+          coredns:
+            addon_version: "v1.11.3-eksbuild.1"
+            configuration_values: '{"autoScaling":{"enabled":true,"minReplicas":3}}'
+          aws-ebs-csi-driver:
+            addon_version: "v1.34.0-eksbuild.1"
+            configuration_values: '{"sidecars":{"snapshotter":{"forceEnable":false}}}'
+          aws-efs-csi-driver:
+            addon_version: "v2.0.8-eksbuild.1"
