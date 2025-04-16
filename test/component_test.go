@@ -29,7 +29,7 @@ func (s *ComponentSuite) TestBasic() {
 	randomID := strings.ToLower(random.UniqueId())
 	namespace := fmt.Sprintf("argocd-%s", randomID)
 
-	secretPath := fmt.Sprintf("/argocd/%s/github/api_key", s.randomID)
+	secretPath := fmt.Sprintf("/argocd/%s/github/api_key", randomID)
 	defer func() {
 		awsTerratest.DeleteParameter(s.T(), awsRegion, secretPath)
 	}()
