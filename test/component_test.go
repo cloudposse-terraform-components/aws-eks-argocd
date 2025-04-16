@@ -61,9 +61,13 @@ func (s *ComponentSuite) SetupSuite() {
 	s.TestSuite.Config.ComponentDestDir = "components/terraform/eks/argocd"
 
 	s.githubOrg = "cloudposse-tests"
-	s.githubToken = os.Getenv("GITHUB_TOKEN")
-	s.randomID = strings.ToLower(random.UniqueId())
-	s.awsRegion = "us-east-2"
+    s.githubOrg = "cloudposse-tests"
+    s.githubToken = os.Getenv("GITHUB_TOKEN")
+    if s.githubToken == "" {
+        s.T().Fatal("GITHUB_TOKEN environment variable must be set")
+    }
+    s.randomID = strings.ToLower(random.UniqueId())
+    s.awsRegion = "us-east-2"
 
 	if !s.Config.SkipDeployDependencies {
 		deployKeyPath := fmt.Sprintf("/argocd/deploy_keys/%s/%s", s.randomID, "%s")
