@@ -53,7 +53,23 @@ func (s *ComponentSuite) TestBasic() {
 func (s *ComponentSuite) TestEnabledFlag() {
 	const component = "eks/argocd/disabled"
 	const stack = "default-test"
-	s.VerifyEnabledFlag(component, stack, nil)
+	const awsRegion = "us-east-2"
+
+	randomID := strings.ToLower(random.UniqueId())
+	namespace := fmt.Sprintf("argocd-%s", randomID)
+
+	secretPath := fmt.Sprintf("/argocd/%s/github/api_key", randomID)
+	defer func() {
+		awsTerratest.DeleteParameter(s.T(), awsRegion, secretPath)
+	}()
+	awsTerratest.PutParameter(s.T(), s.awsRegion, secretPath, "Github API Key", s.githubToken)
+
+	inputs := map[string]interface{}{
+		"kubernetes_namespace": namespace,
+		"ssm_github_api_key": secretPath,
+	}
+
+	s.VerifyEnabledFlag(component, stack, &inputs)
 }
 
 func (s *ComponentSuite) SetupSuite() {
