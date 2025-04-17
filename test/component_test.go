@@ -21,6 +21,28 @@ type ComponentSuite struct {
 	awsRegion string
 }
 
+func (s *ComponentSuite) TestEnabledFlag() {
+	const component = "eks/argocd/disabled"
+	const stack = "default-test"
+	const awsRegion = "us-east-2"
+
+	randomID := strings.ToLower(random.UniqueId())
+	namespace := fmt.Sprintf("argocd-%s", randomID)
+
+	secretPath := fmt.Sprintf("/argocd/%s/github/api_key", randomID)
+	defer func() {
+		awsTerratest.DeleteParameter(s.T(), awsRegion, secretPath)
+	}()
+	awsTerratest.PutParameter(s.T(), s.awsRegion, secretPath, "Github API Key", s.githubToken)
+
+	inputs := map[string]interface{}{
+		"kubernetes_namespace": namespace,
+		"ssm_github_api_key": secretPath,
+	}
+
+	s.VerifyEnabledFlag(component, stack, &inputs)
+}
+
 func (s *ComponentSuite) TestBasic() {
 	const component = "eks/argocd/basic"
 	const stack = "default-test"
@@ -47,29 +69,7 @@ func (s *ComponentSuite) TestBasic() {
 	options, _ = s.DeployAtmosComponent(s.T(), component, stack, &inputs)
 	assert.NotNil(s.T(), options)
 
-	// s.DriftTest(component, stack, &inputs)
-}
-
-func (s *ComponentSuite) TestEnabledFlag() {
-	const component = "eks/argocd/disabled"
-	const stack = "default-test"
-	const awsRegion = "us-east-2"
-
-	randomID := strings.ToLower(random.UniqueId())
-	namespace := fmt.Sprintf("argocd-%s", randomID)
-
-	secretPath := fmt.Sprintf("/argocd/%s/github/api_key", randomID)
-	defer func() {
-		awsTerratest.DeleteParameter(s.T(), awsRegion, secretPath)
-	}()
-	awsTerratest.PutParameter(s.T(), s.awsRegion, secretPath, "Github API Key", s.githubToken)
-
-	inputs := map[string]interface{}{
-		"kubernetes_namespace": namespace,
-		"ssm_github_api_key": secretPath,
-	}
-
-	s.VerifyEnabledFlag(component, stack, &inputs)
+	s.DriftTest(component, stack, &inputs)
 }
 
 func (s *ComponentSuite) SetupSuite() {

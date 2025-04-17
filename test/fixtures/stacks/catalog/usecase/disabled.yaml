@@ -18,9 +18,9 @@ components:
         github_organization: cloudposse-tests
         oidc_enabled: false
         saml_enabled: true
-        ssm_store_account_tenant: default
-        ssm_store_account_region: us-east-2
         ssm_store_account: test
+        ssm_store_account_region: us-east-2
+        ssm_store_account_tenant: default
         argocd_rbac_default_policy: "role:readonly"
         argocd_rbac_policies:
           - "p, role:org-admin, applications, *, */*, allow"
@@ -46,8 +46,4 @@ components:
           #   component: sso-saml-provider
         github_default_notifications_enabled: true
         github_webhook_enabled: true
-        argocd_repositories:
-          argocd-deploy-non-prod:
-            environment: gbl
-            stage: auto
-            tenant: core
+        argocd_repositories: {}
