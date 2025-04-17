@@ -1,0 +1,9 @@
+components:
+  terraform:
+    dns-primary:
+      metadata:
+        component: dns-primary
+      vars:
+        domain_names:
+          - example.net
+        record_config: []

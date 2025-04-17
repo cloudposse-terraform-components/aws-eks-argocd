@@ -43,14 +43,12 @@ variable "ssm_github_app_private_key" {
 }
 
 locals {
-  github_token = local.create_github_webhook ? (
-    var.github_app_enabled ? null : coalesce(var.github_token_override, try(data.aws_ssm_parameter.github_api_key[0].value, null))
-  ) : ""
+  github_token = var.github_app_enabled ? null : coalesce(var.github_token_override, try(data.aws_ssm_parameter.github_api_key[0].value, null))
 }
 
 # SSM Parameter for PAT Authentication
 data "aws_ssm_parameter" "github_api_key" {
-  count           = local.create_github_webhook && !var.github_app_enabled ? 1 : 0
+  count           = !var.github_app_enabled ? 1 : 0
   name            = var.ssm_github_api_key
   with_decryption = true
 }
@@ -64,9 +62,9 @@ data "aws_ssm_parameter" "github_app_private_key" {
 
 # We will only need the github provider if we are creating the GitHub webhook with github_repository_webhook.
 provider "github" {
-  base_url = local.create_github_webhook ? var.github_base_url : null
-  owner    = local.create_github_webhook ? var.github_organization : null
-  token    = local.create_github_webhook ? local.github_token : null
+  base_url = var.github_base_url
+  owner    = var.github_organization
+  token    = local.github_token
 
   dynamic "app_auth" {
     for_each = local.create_github_webhook && var.github_app_enabled ? [1] : []

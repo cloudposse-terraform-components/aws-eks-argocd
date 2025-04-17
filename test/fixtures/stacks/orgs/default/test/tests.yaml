@@ -1,0 +1,9 @@
+import:
+  - orgs/default/test/_defaults
+  - catalog/vpc
+  - catalog/eks-cluster
+  - catalog/dns-primary
+  - catalog/dns-delegated
+  - catalog/argocd-github-repo
+  - catalog/usecase/basic
+  - catalog/usecase/disabled

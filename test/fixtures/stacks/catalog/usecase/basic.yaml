@@ -1,0 +1,53 @@
+components:
+  terraform:
+    eks/argocd/basic:
+      metadata:
+        component: eks/argocd
+      vars:
+        enabled: true
+        kube_exec_auth_role_arn_enabled: false
+        chart_version: 5.19.12
+        name: argocd
+        atomic: false
+        cleanup_on_fail: false
+        create_namespace: true
+        alb_group_name: alb-controller-ingress-group
+        eks_component_name: eks/cluster
+        alb_logs_prefix: argocd
+        certificate_issuer: selfsigning-issuer
+        github_organization: cloudposse-tests
+        oidc_enabled: false
+        saml_enabled: true
+        ssm_store_account: test
+        ssm_store_account_region: us-east-2
+        ssm_store_account_tenant: default
+        argocd_rbac_default_policy: "role:readonly"
+        argocd_rbac_policies:
+          - "p, role:org-admin, applications, *, */*, allow"
+          - "p, role:org-admin, clusters, get, *, allow"
+          - "p, role:org-admin, repositories, get, *, allow"
+          - "p, role:org-admin, repositories, create, *, allow"
+          - "p, role:org-admin, repositories, update, *, allow"
+          - "p, role:org-admin, repositories, delete, *, allow"
+        argocd_rbac_groups: []
+        chart_values:
+          # Work around for issue with `invalid session token: failed to verify signature: failed to verify id token signature`
+          # https://github.com/argoproj/argo-cd/issues/11392
+          dex:
+            image:
+              tag: v2.31.2
+          #  https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml#L42-L68
+          global:
+            logging:
+              format: json
+              level: warn
+        saml_sso_providers: {}
+          # aws-sso:
+          #   component: sso-saml-provider
+        github_default_notifications_enabled: true
+        github_webhook_enabled: true
+        argocd_repositories: {}
+          # argocd-deploy-non-prod:
+          #   environment: gbl
+          #   stage: auto
+          #   tenant: core
