@@ -462,9 +462,9 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.0, < 6.0.0 |
 | <a name="requirement_github"></a> [github](#requirement\_github) | >= 4.0 |
-| <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 2.6.0 |
+| <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 2.6.0, < 3.0.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.9.0, != 2.21.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.5 |
 
@@ -472,8 +472,8 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.0 |
-| <a name="provider_aws.config_secrets"></a> [aws.config\_secrets](#provider\_aws.config\_secrets) | >= 4.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.0, < 6.0.0 |
+| <a name="provider_aws.config_secrets"></a> [aws.config\_secrets](#provider\_aws.config\_secrets) | >= 4.0, < 6.0.0 |
 | <a name="provider_github"></a> [github](#provider\_github) | >= 4.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | >= 2.9.0, != 2.21.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.5 |
