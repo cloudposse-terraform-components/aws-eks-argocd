@@ -6,14 +6,16 @@ tags:
   - provider/helm
 ---
 
-# Component: `eks/argocd`
+# Component: `eks-argocd`
 
-This component is responsible for provisioning [Argo CD](https://argoproj.github.io/cd/).
+This component provisions [Argo CD](https://argoproj.github.io/cd/), a declarative GitOps continuous delivery tool for Kubernetes.
 
-Argo CD is a declarative, GitOps continuous delivery tool for Kubernetes.
+Note: Argo CD CRDs must be installed separately from this component/Helm release.
+## Usage
 
-> :warning::warning::warning: ArgoCD CRDs must be installed separately from this component/helm release.
-> :warning::warning::warning:
+### Install Argo CD CRDs
+
+Install the Argo CD CRDs prior to deploying this component:
 
 ```shell
 kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=<appVersion>"
@@ -22,9 +24,7 @@ kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=<appVer
 kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.4.9"
 ```
 
-## Usage
-
-### Preparing AppProject repos:
+### Preparing AppProject repos
 
 First, make sure you have a GitHub repo ready to go. We have a component for this called the `argocd-repo` component. It
 will create a GitHub repo and adds some secrets and code owners. Most importantly, it configures an
@@ -321,7 +321,7 @@ manifests: plat/use2-dev/apps/my-preview-acme-app/manifests
 Here's a configuration for letting argocd send notifications back to GitHub:
 
 1. [Create GitHub PAT](https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token)
-   with scope `repo:status`
+  with scope `repo:status`
 2. Save the PAT to SSM `/argocd/notifications/notifiers/common/github-token`
 3. Use this atmos stack configuration
 
@@ -340,7 +340,7 @@ components:
 Here's a configuration Github notify ArgoCD on commit:
 
 1. [Create GitHub PAT](https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token)
-   with scope `admin:repo_hook`
+  with scope `admin:repo_hook`
 2. Save the PAT to SSM `/argocd/github/api_key`
 3. Use this atmos stack configuration
 
@@ -405,13 +405,13 @@ components:
 ArgoCD supports Slack notifications on application deployments.
 
 1. In order to enable Slack notifications, first create a Slack Application following the
-   [ArgoCD documentation](https://argocd-notifications.readthedocs.io/en/stable/services/slack/).
+  [ArgoCD documentation](https://argocd-notifications.readthedocs.io/en/stable/services/slack/).
 1. Create an OAuth token for the new Slack App
 1. Save the OAuth token to AWS SSM Parameter Store in the same account and region as Github tokens. For example,
-   `core-use2-auto`
+  `core-use2-auto`
 1. Add the app to the chosen Slack channel. _If not added, notifications will not work_
 1. For this component, enable Slack integrations for each Application with `var.slack_notifications_enabled` and
-   `var.slack_notifications`:
+  `var.slack_notifications`:
 
 ```yaml
 slack_notifications_enabled: true
@@ -420,11 +420,11 @@ slack_notifications:
 ```
 
 6. In the `argocd-repo` component, set `var.slack_notifications_channel` to the name of the Slack notification channel
-   to add the relevant ApplicationSet annotations
+  to add the relevant ApplicationSet annotations
 
-## Troubleshooting
+### Troubleshooting
 
-## Login to ArgoCD admin UI
+#### Login to ArgoCD admin UI
 
 For ArgoCD v1.9 and later, the initial admin password is available from a Kubernetes secret named
 `argocd-initial-admin-secret`. To get the initial password, execute the following command:
@@ -436,7 +436,7 @@ kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath='{.data.pas
 Then open the ArgoCD admin UI and use the username `admin` and the password obtained in the previous step to log in to
 the ArgoCD admin.
 
-## Error "server.secretkey is missing"
+#### Error "server.secretkey is missing"
 
 If you provision a new version of the `eks/argocd` component, and some Helm Chart values get updated, you might
 encounter the error "server.secretkey is missing" in the ArgoCD admin UI. To fix the error, execute the following
@@ -456,7 +456,10 @@ kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath='{.data.pas
 Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing
 
 <!-- prettier-ignore-start -->
-<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+<!-- prettier-ignore-end -->
+
+
+<!-- markdownlint-disable -->
 ## Requirements
 
 | Name | Version |
@@ -620,13 +623,23 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 | Name | Description |
 |------|-------------|
 | <a name="output_github_webhook_value"></a> [github\_webhook\_value](#output\_github\_webhook\_value) | The value of the GitHub webhook secret used for ArgoCD |
-<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
-<!-- prettier-ignore-end -->
+<!-- markdownlint-restore -->
+
+
 
 ## References
 
-- [Argo CD](https://argoproj.github.io/cd/)
-- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/)
-- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/)
 
-[<img src="https://cloudposse.com/logo-300x69.svg" height="32" align="right"/>](https://cpco.io/component)
+- [Argo CD](https://argoproj.github.io/cd/) - 
+
+- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/) - 
+
+- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/) - 
+
+- [Argo CD error "server.secretkey is missing"](https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing) - 
+
+
+
+
+[<img src="https://cloudposse.com/logo-300x69.svg" height="32" align="right"/>](https://cpco.io/homepage?utm_source=github&utm_medium=readme&utm_campaign=cloudposse-terraform-components/aws-eks-argocd&utm_content=)
+
