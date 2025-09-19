@@ -6,16 +6,14 @@ tags:
   - provider/helm
 ---
 
-# Component: `eks-argocd`
+# Component: `eks/argocd`
 
-This component provisions [Argo CD](https://argoproj.github.io/cd/), a declarative GitOps continuous delivery tool for Kubernetes.
+This component is responsible for provisioning [Argo CD](https://argoproj.github.io/cd/).
 
-Note: Argo CD CRDs must be installed separately from this component/Helm release.
-## Usage
+Argo CD is a declarative, GitOps continuous delivery tool for Kubernetes.
 
-### Install Argo CD CRDs
-
-Install the Argo CD CRDs prior to deploying this component:
+> :warning::warning::warning: ArgoCD CRDs must be installed separately from this component/helm release.
+> :warning::warning::warning:
 
 ```shell
 kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=<appVersion>"
@@ -24,7 +22,9 @@ kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=<appVer
 kubectl apply -k "https://github.com/argoproj/argo-cd/manifests/crds?ref=v2.4.9"
 ```
 
-### Preparing AppProject repos
+## Usage
+
+### Preparing AppProject repos:
 
 First, make sure you have a GitHub repo ready to go. We have a component for this called the `argocd-repo` component. It
 will create a GitHub repo and adds some secrets and code owners. Most importantly, it configures an
@@ -321,7 +321,7 @@ manifests: plat/use2-dev/apps/my-preview-acme-app/manifests
 Here's a configuration for letting argocd send notifications back to GitHub:
 
 1. [Create GitHub PAT](https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token)
-  with scope `repo:status`
+   with scope `repo:status`
 2. Save the PAT to SSM `/argocd/notifications/notifiers/common/github-token`
 3. Use this atmos stack configuration
 
@@ -340,7 +340,7 @@ components:
 Here's a configuration Github notify ArgoCD on commit:
 
 1. [Create GitHub PAT](https://docs.github.com/en/enterprise-server@3.6/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token)
-  with scope `admin:repo_hook`
+   with scope `admin:repo_hook`
 2. Save the PAT to SSM `/argocd/github/api_key`
 3. Use this atmos stack configuration
 
@@ -405,13 +405,13 @@ components:
 ArgoCD supports Slack notifications on application deployments.
 
 1. In order to enable Slack notifications, first create a Slack Application following the
-  [ArgoCD documentation](https://argocd-notifications.readthedocs.io/en/stable/services/slack/).
+   [ArgoCD documentation](https://argocd-notifications.readthedocs.io/en/stable/services/slack/).
 1. Create an OAuth token for the new Slack App
 1. Save the OAuth token to AWS SSM Parameter Store in the same account and region as Github tokens. For example,
-  `core-use2-auto`
+   `core-use2-auto`
 1. Add the app to the chosen Slack channel. _If not added, notifications will not work_
 1. For this component, enable Slack integrations for each Application with `var.slack_notifications_enabled` and
-  `var.slack_notifications`:
+   `var.slack_notifications`:
 
 ```yaml
 slack_notifications_enabled: true
@@ -420,11 +420,11 @@ slack_notifications:
 ```
 
 6. In the `argocd-repo` component, set `var.slack_notifications_channel` to the name of the Slack notification channel
-  to add the relevant ApplicationSet annotations
+   to add the relevant ApplicationSet annotations
 
-### Troubleshooting
+## Troubleshooting
 
-#### Login to ArgoCD admin UI
+## Login to ArgoCD admin UI
 
 For ArgoCD v1.9 and later, the initial admin password is available from a Kubernetes secret named
 `argocd-initial-admin-secret`. To get the initial password, execute the following command:
@@ -436,7 +436,7 @@ kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath='{.data.pas
 Then open the ArgoCD admin UI and use the username `admin` and the password obtained in the previous step to log in to
 the ArgoCD admin.
 
-#### Error "server.secretkey is missing"
+## Error "server.secretkey is missing"
 
 If you provision a new version of the `eks/argocd` component, and some Helm Chart values get updated, you might
 encounter the error "server.secretkey is missing" in the ArgoCD admin UI. To fix the error, execute the following
@@ -456,10 +456,7 @@ kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath='{.data.pas
 Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing
 
 <!-- prettier-ignore-start -->
-<!-- prettier-ignore-end -->
-
-
-<!-- markdownlint-disable -->
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
 
 | Name | Version |
@@ -487,14 +484,14 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 |------|--------|---------|
 | <a name="module_argocd"></a> [argocd](#module\_argocd) | cloudposse/helm-release/aws | 0.10.1 |
 | <a name="module_argocd_apps"></a> [argocd\_apps](#module\_argocd\_apps) | cloudposse/helm-release/aws | 0.10.1 |
-| <a name="module_argocd_repo"></a> [argocd\_repo](#module\_argocd\_repo) | cloudposse/stack-config/yaml//modules/remote-state | 1.8.0 |
-| <a name="module_dns_gbl_delegated"></a> [dns\_gbl\_delegated](#module\_dns\_gbl\_delegated) | cloudposse/stack-config/yaml//modules/remote-state | 1.8.0 |
-| <a name="module_eks"></a> [eks](#module\_eks) | cloudposse/stack-config/yaml//modules/remote-state | 1.8.0 |
+| <a name="module_argocd_repo"></a> [argocd\_repo](#module\_argocd\_repo) | cloudposse/stack-config/yaml//modules/remote-state | 1.5.0 |
+| <a name="module_dns_gbl_delegated"></a> [dns\_gbl\_delegated](#module\_dns\_gbl\_delegated) | cloudposse/stack-config/yaml//modules/remote-state | 1.5.0 |
+| <a name="module_eks"></a> [eks](#module\_eks) | cloudposse/stack-config/yaml//modules/remote-state | 1.5.0 |
 | <a name="module_iam_roles"></a> [iam\_roles](#module\_iam\_roles) | ../../account-map/modules/iam-roles | n/a |
 | <a name="module_iam_roles_config_secrets"></a> [iam\_roles\_config\_secrets](#module\_iam\_roles\_config\_secrets) | ../../account-map/modules/iam-roles | n/a |
 | <a name="module_notifications_notifiers"></a> [notifications\_notifiers](#module\_notifications\_notifiers) | cloudposse/config/yaml//modules/deepmerge | 1.0.2 |
 | <a name="module_notifications_templates"></a> [notifications\_templates](#module\_notifications\_templates) | cloudposse/config/yaml//modules/deepmerge | 1.0.2 |
-| <a name="module_saml_sso_providers"></a> [saml\_sso\_providers](#module\_saml\_sso\_providers) | cloudposse/stack-config/yaml//modules/remote-state | 1.8.0 |
+| <a name="module_saml_sso_providers"></a> [saml\_sso\_providers](#module\_saml\_sso\_providers) | cloudposse/stack-config/yaml//modules/remote-state | 1.5.0 |
 | <a name="module_this"></a> [this](#module\_this) | cloudposse/label/null | 0.25.0 |
 
 ## Resources
@@ -554,11 +551,12 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Set to false to prevent the module from creating any resources | `bool` | `null` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | ID element. Usually used for region e.g. 'uw2', 'us-west-2', OR role 'prod', 'staging', 'dev', 'UAT' | `string` | `null` | no |
 | <a name="input_forecastle_enabled"></a> [forecastle\_enabled](#input\_forecastle\_enabled) | Toggles Forecastle integration in the deployed chart | `bool` | `false` | no |
-| <a name="input_github_app_enabled"></a> [github\_app\_enabled](#input\_github\_app\_enabled) | Whether to use GitHub App authentication instead of PAT | `bool` | `false` | no |
-| <a name="input_github_app_id"></a> [github\_app\_id](#input\_github\_app\_id) | The ID of the GitHub App to use for authentication | `string` | `null` | no |
-| <a name="input_github_app_installation_id"></a> [github\_app\_installation\_id](#input\_github\_app\_installation\_id) | The Installation ID of the GitHub App to use for authentication | `string` | `null` | no |
+| <a name="input_github_app_enabled"></a> [github\_app\_enabled](#input\_github\_app\_enabled) | Whether to use GitHub App authentication for Argo CD repositories both for webhooks and syncing (depending on `var.github_deploy_keys_enabled`) | `bool` | `false` | no |
+| <a name="input_github_app_id"></a> [github\_app\_id](#input\_github\_app\_id) | The ID of the GitHub App to use for Argo CD repository authentication | `string` | `null` | no |
+| <a name="input_github_app_installation_id"></a> [github\_app\_installation\_id](#input\_github\_app\_installation\_id) | The Installation ID of the GitHub App to use for Argo CD repository authentication | `string` | `null` | no |
 | <a name="input_github_base_url"></a> [github\_base\_url](#input\_github\_base\_url) | This is the target GitHub base API endpoint. Providing a value is a requirement when working with GitHub Enterprise. It is optional to provide this value and it can also be sourced from the `GITHUB_BASE_URL` environment variable. The value must end with a slash, for example: `https://terraformtesting-ghe.westus.cloudapp.azure.com/` | `string` | `null` | no |
 | <a name="input_github_default_notifications_enabled"></a> [github\_default\_notifications\_enabled](#input\_github\_default\_notifications\_enabled) | Enable default GitHub commit statuses notifications (required for CD sync mode) | `bool` | `true` | no |
+| <a name="input_github_deploy_keys_enabled"></a> [github\_deploy\_keys\_enabled](#input\_github\_deploy\_keys\_enabled) | Enable GitHub deploy keys for the repository. These are used for Argo CD application syncing.<br/><br/>Alternatively, you can use a GitHub App to access this desired state repository configured with `var.github_app_enabled`, `var.github_app_id`, and `var.github_app_installation_id`. | `bool` | `true` | no |
 | <a name="input_github_notifications_app_enabled"></a> [github\_notifications\_app\_enabled](#input\_github\_notifications\_app\_enabled) | Whether to use GitHub App authentication for notifications instead of PAT | `bool` | `false` | no |
 | <a name="input_github_notifications_app_id"></a> [github\_notifications\_app\_id](#input\_github\_notifications\_app\_id) | The ID of the GitHub App to use for notifications authentication | `string` | `null` | no |
 | <a name="input_github_notifications_app_installation_id"></a> [github\_notifications\_app\_installation\_id](#input\_github\_notifications\_app\_installation\_id) | The Installation ID of the GitHub App to use for notifications authentication | `string` | `null` | no |
@@ -605,7 +603,7 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 | <a name="input_slack_notifications"></a> [slack\_notifications](#input\_slack\_notifications) | ArgoCD Slack notification configuration. Requires Slack Bot created with token stored at the given SSM Parameter path.<br/><br/>See: https://argocd-notifications.readthedocs.io/en/stable/services/slack/ | <pre>object({<br/>    token_ssm_path = optional(string, "/argocd/notifications/notifiers/slack/token")<br/>    api_url        = optional(string, null)<br/>    username       = optional(string, "ArgoCD")<br/>    icon           = optional(string, null)<br/>  })</pre> | `{}` | no |
 | <a name="input_slack_notifications_enabled"></a> [slack\_notifications\_enabled](#input\_slack\_notifications\_enabled) | Whether or not to enable Slack notifications. See `var.slack_notifications.` | `bool` | `false` | no |
 | <a name="input_ssm_github_api_key"></a> [ssm\_github\_api\_key](#input\_ssm\_github\_api\_key) | SSM path to the GitHub API key | `string` | `"/argocd/github/api_key"` | no |
-| <a name="input_ssm_github_app_private_key"></a> [ssm\_github\_app\_private\_key](#input\_ssm\_github\_app\_private\_key) | SSM path to the GitHub App private key | `string` | `"/argocd/github/app_private_key"` | no |
+| <a name="input_ssm_github_app_private_key"></a> [ssm\_github\_app\_private\_key](#input\_ssm\_github\_app\_private\_key) | SSM path to the GitHub App private key for Argo CD repository authentication | `string` | `"/argocd/github/app_private_key"` | no |
 | <a name="input_ssm_github_notifications_app_private_key"></a> [ssm\_github\_notifications\_app\_private\_key](#input\_ssm\_github\_notifications\_app\_private\_key) | SSM path to the GitHub App private key for notifications | `string` | `"/argocd/github_notifications/app_private_key"` | no |
 | <a name="input_ssm_oidc_client_id"></a> [ssm\_oidc\_client\_id](#input\_ssm\_oidc\_client\_id) | The SSM Parameter Store path for the ID of the IdP client | `string` | `"/argocd/oidc/client_id"` | no |
 | <a name="input_ssm_oidc_client_secret"></a> [ssm\_oidc\_client\_secret](#input\_ssm\_oidc\_client\_secret) | The SSM Parameter Store path for the secret of the IdP client | `string` | `"/argocd/oidc/client_secret"` | no |
@@ -623,23 +621,13 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 | Name | Description |
 |------|-------------|
 | <a name="output_github_webhook_value"></a> [github\_webhook\_value](#output\_github\_webhook\_value) | The value of the GitHub webhook secret used for ArgoCD |
-<!-- markdownlint-restore -->
-
-
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+<!-- prettier-ignore-end -->
 
 ## References
 
+- [Argo CD](https://argoproj.github.io/cd/)
+- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/)
+- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/)
 
-- [Argo CD](https://argoproj.github.io/cd/) - 
-
-- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/) - 
-
-- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/) - 
-
-- [Argo CD error "server.secretkey is missing"](https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing) - 
-
-
-
-
-[<img src="https://cloudposse.com/logo-300x69.svg" height="32" align="right"/>](https://cpco.io/homepage?utm_source=github&utm_medium=readme&utm_campaign=cloudposse-terraform-components/aws-eks-argocd&utm_content=)
-
+[<img src="https://cloudposse.com/logo-300x69.svg" height="32" align="right"/>](https://cpco.io/component)

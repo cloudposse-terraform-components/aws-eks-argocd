@@ -12,13 +12,23 @@ dex:
 
 controller:
   replicas: 1
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
 
 server:
   replicas: 2
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+
 
   ingress:
     enabled: true
-    ingressClassName: alb
+    ingressClassName: alb-argocd-ext
     annotations:
       cert-manager.io/cluster-issuer: ${cert_issuer}
       external-dns.alpha.kubernetes.io/hostname: ${ingress_host}
@@ -86,9 +96,17 @@ server:
     repositories: |
 %{ for name, url in application_repos ~}
       - url: ${url}
+%{ if github_deploy_keys_enabled == true ~}
         sshPrivateKeySecret:
           name: argocd-repo-creds-${name}
           key: sshPrivateKey
+%{ else ~}
+        githubAppID: ${github_app_id}
+        githubAppInstallationID: ${github_app_installation_id}
+        githubAppPrivateKeySecret:
+          name: argocd-repo-creds-${name}
+          key: githubAppPrivateKey
+%{ endif ~}
 %{ endfor ~}
     resource.customizations: |
         admissionregistration.k8s.io/MutatingWebhookConfiguration:
@@ -131,6 +149,10 @@ server:
 
 repoServer:
   replicas: 2
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
 
 applicationSet:
   replicas: 2

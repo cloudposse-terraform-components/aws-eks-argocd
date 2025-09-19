@@ -219,14 +219,14 @@ locals {
       if key != "ssm_path_prefix" && key != "webhook"
     },
     {
-      for key, value in try(local.notifications_notifiers.webhook, {}) :
+      for key, value in coalesce(local.notifications_notifiers.webhook, {}) :
       format("webhook_%s", key) =>
       { for param_name, param_value in value : param_name => param_value if param_value != null }
     }
   )
 
   ## Get paths to read configs for each notifier service
-  notifications_notifiers_ssm_path = local.enabled ? merge(
+  notifications_notifiers_ssm_path = merge(
     {
       for key, value in local.notifications_notifiers_variables :
       key => format("%s/%s/", local.notifications_notifiers.ssm_path_prefix, key)
@@ -234,7 +234,7 @@ locals {
     {
       common = format("%s/common/", local.notifications_notifiers.ssm_path_prefix)
     },
-  ) : {}
+  )
 
   ## Read SSM secrets into object for each notifier service
   notifications_notifiers_ssm_configs = {
