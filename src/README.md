@@ -630,16 +630,15 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 ## References
 
 
-- [Argo CD](https://argoproj.github.io/cd/) - 
+- [Argo CD](https://argoproj.github.io/cd/) -
 
-- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/) - 
+- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/) -
 
-- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/) - 
+- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/) -
 
-- [Argo CD error "server.secretkey is missing"](https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing) - 
+- [Argo CD error "server.secretkey is missing"](https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing) -
 
 
 
 
 [<img src="https://cloudposse.com/logo-300x69.svg" height="32" align="right"/>](https://cpco.io/homepage?utm_source=github&utm_medium=readme&utm_campaign=cloudposse-terraform-components/aws-eks-argocd&utm_content=)
-

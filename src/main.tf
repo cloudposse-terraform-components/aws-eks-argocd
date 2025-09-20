@@ -1,41 +1,50 @@
 locals {
   enabled = module.this.enabled
 
-  kubernetes_namespace = var.kubernetes_namespace
-  oidc_enabled         = local.enabled && var.oidc_enabled
-  oidc_enabled_count   = local.oidc_enabled ? 1 : 0
-  saml_enabled         = local.enabled && var.saml_enabled
+  kubernetes_namespace       = var.kubernetes_namespace
+  oidc_enabled               = local.enabled && var.oidc_enabled
+  oidc_enabled_count         = local.oidc_enabled ? 1 : 0
+  saml_enabled               = local.enabled && var.saml_enabled
+  github_deploy_keys_enabled = local.enabled && var.github_deploy_keys_enabled
   argocd_repositories = local.enabled ? {
     for k, v in var.argocd_repositories : replace(k, "/", "-") => {
-      clone_url         = module.argocd_repo[k].outputs.repository_ssh_clone_url
-      github_deploy_key = data.aws_ssm_parameter.github_deploy_key[k].value
+      # If using deploy keys, use the SSH clone URL. Otherwise, use the HTTP clone URL.
+      clone_url         = local.github_deploy_keys_enabled ? module.argocd_repo[k].outputs.repository_ssh_clone_url : module.argocd_repo[k].outputs.repository_http_clone_url
+      github_deploy_key = local.github_deploy_keys_enabled ? data.aws_ssm_parameter.github_deploy_key[k].value : ""
       repository        = module.argocd_repo[k].outputs.repository
     }
   } : {}
 
-  credential_templates = flatten(concat([
-    for k, v in local.argocd_repositories : [
-      {
+  credential_templates = flatten(concat(
+    [
+      for k, v in local.argocd_repositories : {
         name  = "configs.credentialTemplates.${k}.url"
         value = v.clone_url
         type  = "string"
-      },
-      {
+      }
+    ],
+    local.github_deploy_keys_enabled ? [
+      for k, v in local.argocd_repositories : {
         name  = "configs.credentialTemplates.${k}.sshPrivateKey"
         value = nonsensitive(v.github_deploy_key)
         type  = "string"
-      },
-    ]
+      }
+      ] : [
+      # If we're using GitHub App authentication, we need to add the GitHub App private key as a secret.
+      # It will be used by all desired state repositories
+      for k, v in local.argocd_repositories : {
+        name  = "configs.credentialTemplates.${k}.githubAppPrivateKey"
+        value = nonsensitive(data.aws_ssm_parameter.github_app_private_key[0].value)
+        type  = "string"
+      }
     ],
     [
       for s, v in local.notifications_notifiers_ssm_configs : [
-        for k, i in v : [
-          {
-            name  = "notifications.secret.items.${s}_${k}"
-            value = i
-            type  = "string"
-          }
-        ]
+        for k, i in v : {
+          name  = "notifications.secret.items.${s}_${k}"
+          value = i
+          type  = "string"
+        }
       ]
     ],
     local.github_webhook_enabled ? [
@@ -154,26 +163,29 @@ module "argocd" {
     templatefile(
       "${path.module}/resources/argocd-values.yaml.tpl",
       {
-        admin_enabled       = var.admin_enabled
-        anonymous_enabled   = var.anonymous_enabled
-        alb_group_name      = var.alb_group_name == null ? "" : var.alb_group_name
-        alb_logs_bucket     = var.alb_logs_bucket
-        alb_logs_prefix     = var.alb_logs_prefix
-        alb_name            = var.alb_name == null ? "" : var.alb_name
-        application_repos   = { for k, v in local.argocd_repositories : k => v.clone_url }
-        argocd_host         = local.host
-        cert_issuer         = var.certificate_issuer
-        forecastle_enabled  = var.forecastle_enabled
-        ingress_host        = local.host
-        name                = module.this.name
-        oidc_enabled        = local.oidc_enabled
-        oidc_rbac_scopes    = var.oidc_rbac_scopes
-        saml_enabled        = local.saml_enabled
-        saml_rbac_scopes    = var.saml_rbac_scopes
-        service_type        = var.service_type
-        rbac_default_policy = var.argocd_rbac_default_policy
-        rbac_policies       = var.argocd_rbac_policies
-        rbac_groups         = var.argocd_rbac_groups
+        admin_enabled              = var.admin_enabled
+        alb_group_name             = var.alb_group_name == null ? "" : var.alb_group_name
+        alb_logs_bucket            = var.alb_logs_bucket
+        alb_logs_prefix            = var.alb_logs_prefix
+        alb_name                   = var.alb_name == null ? "" : var.alb_name
+        anonymous_enabled          = var.anonymous_enabled
+        application_repos          = { for k, v in local.argocd_repositories : k => v.clone_url }
+        argocd_host                = local.host
+        cert_issuer                = var.certificate_issuer
+        forecastle_enabled         = var.forecastle_enabled
+        github_app_id              = var.github_app_id
+        github_app_installation_id = var.github_app_installation_id
+        github_deploy_keys_enabled = local.github_deploy_keys_enabled
+        ingress_host               = local.host
+        name                       = module.this.name
+        oidc_enabled               = local.oidc_enabled
+        oidc_rbac_scopes           = var.oidc_rbac_scopes
+        rbac_default_policy        = var.argocd_rbac_default_policy
+        rbac_groups                = var.argocd_rbac_groups
+        rbac_policies              = var.argocd_rbac_policies
+        saml_enabled               = local.saml_enabled
+        saml_rbac_scopes           = var.saml_rbac_scopes
+        service_type               = var.service_type
       }
     ),
     # argocd-notifications specific settings

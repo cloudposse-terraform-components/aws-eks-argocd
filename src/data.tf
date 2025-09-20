@@ -26,7 +26,7 @@ data "aws_ssm_parameter" "oidc_client_secret" {
 }
 
 data "aws_ssm_parameter" "github_deploy_key" {
-  for_each = local.enabled ? var.argocd_repositories : {}
+  for_each = local.github_deploy_keys_enabled ? var.argocd_repositories : {}
 
   name = local.enabled ? format(
     module.argocd_repo[each.key].outputs.deploy_keys_ssm_path_format,
