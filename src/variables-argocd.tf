@@ -225,27 +225,3 @@ variable "github_deploy_keys_enabled" {
   Alternatively, you can use a GitHub App to access this desired state repository configured with `var.github_app_enabled`, `var.github_app_id`, and `var.github_app_installation_id`.
   EOT
 }
-
-variable "github_app_enabled" {
-  type        = bool
-  description = "Whether to use GitHub App authentication for Argo CD repositories both for webhooks and syncing (depending on `var.github_deploy_keys_enabled`)"
-  default     = false
-}
-
-variable "github_app_id" {
-  type        = string
-  description = "The ID of the GitHub App to use for Argo CD repository authentication"
-  default     = null
-}
-
-variable "github_app_installation_id" {
-  type        = string
-  description = "The Installation ID of the GitHub App to use for Argo CD repository authentication"
-  default     = null
-}
-
-variable "ssm_github_app_private_key" {
-  type        = string
-  description = "SSM path to the GitHub App private key for Argo CD repository authentication"
-  default     = "/argocd/github/app_private_key"
-}

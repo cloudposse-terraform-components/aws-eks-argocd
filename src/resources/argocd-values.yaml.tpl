@@ -28,7 +28,7 @@ server:
 
   ingress:
     enabled: true
-    ingressClassName: alb-argocd-ext
+    ingressClassName: alb
     annotations:
       cert-manager.io/cluster-issuer: ${cert_issuer}
       external-dns.alpha.kubernetes.io/hostname: ${ingress_host}
