@@ -136,8 +136,6 @@ server:
 %{   endif ~}
 %{ endif ~}
 
-    policy.default: role:readonly
-
 repoServer:
   replicas: 2
 
