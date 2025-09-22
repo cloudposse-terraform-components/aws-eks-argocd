@@ -12,19 +12,9 @@ dex:
 
 controller:
   replicas: 1
-  metrics:
-    enabled: true
-    serviceMonitor:
-      enabled: true
 
 server:
   replicas: 2
-  metrics:
-    enabled: true
-    serviceMonitor:
-      enabled: true
-
-
 
   ingress:
     enabled: true
@@ -101,8 +91,8 @@ server:
           name: argocd-repo-creds-${name}
           key: sshPrivateKey
 %{ else ~}
-        githubAppID: ${github_app_id}
-        githubAppInstallationID: ${github_app_installation_id}
+        githubAppID: "${github_app_id}"
+        githubAppInstallationID: "${github_app_installation_id}"
         githubAppPrivateKeySecret:
           name: argocd-repo-creds-${name}
           key: githubAppPrivateKey
@@ -140,19 +130,16 @@ server:
 
 %{ if oidc_enabled == true ~}
     scopes: '${oidc_rbac_scopes}'
-%{ endif ~}
-%{ if saml_enabled == true ~}
+%{ else ~}
+%{   if saml_enabled == true ~}
     scopes: '${saml_rbac_scopes}'
+%{   endif ~}
 %{ endif ~}
 
     policy.default: role:readonly
 
 repoServer:
   replicas: 2
-  metrics:
-    enabled: true
-    serviceMonitor:
-      enabled: true
 
 applicationSet:
   replicas: 2
