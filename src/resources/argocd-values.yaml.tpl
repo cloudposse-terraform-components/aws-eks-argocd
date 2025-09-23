@@ -91,8 +91,8 @@ server:
           name: argocd-repo-creds-${name}
           key: sshPrivateKey
 %{ else ~}
-        githubAppID: ${github_app_id}
-        githubAppInstallationID: ${github_app_installation_id}
+        githubAppID: ${tonumber(github_app_id)}
+        githubAppInstallationID: ${tonumber(github_app_installation_id)}
         githubAppPrivateKeySecret:
           name: argocd-repo-creds-${name}
           key: githubAppPrivateKey

@@ -12,13 +12,13 @@ variable "github_notifications_app_enabled" {
 }
 
 variable "github_notifications_app_id" {
-  type        = number
+  type        = string
   description = "The ID of the GitHub App to use for notifications authentication"
   default     = null
 }
 
 variable "github_notifications_app_installation_id" {
-  type        = number
+  type        = string
   description = "The Installation ID of the GitHub App to use for notifications authentication"
   default     = null
 }
