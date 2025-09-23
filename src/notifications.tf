@@ -219,7 +219,7 @@ locals {
       if key != "ssm_path_prefix" && key != "webhook"
     },
     {
-      for key, value in lookup(local.notifications_notifiers, "webhook", {}) :
+      for key, value in coalesce(lookup(local.notifications_notifiers, "webhook", {}), {}) :
       format("webhook_%s", key) =>
       { for param_name, param_value in value : param_name => param_value if param_value != null }
     }
