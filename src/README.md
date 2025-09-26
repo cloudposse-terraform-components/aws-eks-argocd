@@ -559,6 +559,7 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 | <a name="input_github_app_installation_id"></a> [github\_app\_installation\_id](#input\_github\_app\_installation\_id) | The Installation ID of the GitHub App to use for authentication | `string` | `null` | no |
 | <a name="input_github_base_url"></a> [github\_base\_url](#input\_github\_base\_url) | This is the target GitHub base API endpoint. Providing a value is a requirement when working with GitHub Enterprise. It is optional to provide this value and it can also be sourced from the `GITHUB_BASE_URL` environment variable. The value must end with a slash, for example: `https://terraformtesting-ghe.westus.cloudapp.azure.com/` | `string` | `null` | no |
 | <a name="input_github_default_notifications_enabled"></a> [github\_default\_notifications\_enabled](#input\_github\_default\_notifications\_enabled) | Enable default GitHub commit statuses notifications (required for CD sync mode) | `bool` | `true` | no |
+| <a name="input_github_deploy_keys_enabled"></a> [github\_deploy\_keys\_enabled](#input\_github\_deploy\_keys\_enabled) | Enable GitHub deploy keys for the repository. These are used for Argo CD application syncing.<br/><br/>Alternatively, you can use a GitHub App to access this desired state repository configured with `var.github_app_enabled`, `var.github_app_id`, and `var.github_app_installation_id`. | `bool` | `true` | no |
 | <a name="input_github_notifications_app_enabled"></a> [github\_notifications\_app\_enabled](#input\_github\_notifications\_app\_enabled) | Whether to use GitHub App authentication for notifications instead of PAT | `bool` | `false` | no |
 | <a name="input_github_notifications_app_id"></a> [github\_notifications\_app\_id](#input\_github\_notifications\_app\_id) | The ID of the GitHub App to use for notifications authentication | `string` | `null` | no |
 | <a name="input_github_notifications_app_installation_id"></a> [github\_notifications\_app\_installation\_id](#input\_github\_notifications\_app\_installation\_id) | The Installation ID of the GitHub App to use for notifications authentication | `string` | `null` | no |
@@ -630,15 +631,16 @@ Reference: https://stackoverflow.com/questions/75046330/argo-cd-error-server-sec
 ## References
 
 
-- [Argo CD](https://argoproj.github.io/cd/) -
+- [Argo CD](https://argoproj.github.io/cd/) - 
 
-- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/) -
+- [Argo CD Docs](https://argo-cd.readthedocs.io/en/stable/) - 
 
-- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/) -
+- [Argo Helm Chart](https://github.com/argoproj/argo-helm/blob/master/charts/argo-cd/) - 
 
-- [Argo CD error "server.secretkey is missing"](https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing) -
+- [Argo CD error "server.secretkey is missing"](https://stackoverflow.com/questions/75046330/argo-cd-error-server-secretkey-is-missing) - 
 
 
 
 
 [<img src="https://cloudposse.com/logo-300x69.svg" height="32" align="right"/>](https://cpco.io/homepage?utm_source=github&utm_medium=readme&utm_campaign=cloudposse-terraform-components/aws-eks-argocd&utm_content=)
+
