@@ -215,3 +215,13 @@ variable "saml_sso_providers" {
   default     = {}
   description = "SAML SSO providers components"
 }
+
+variable "github_deploy_keys_enabled" {
+  type        = bool
+  default     = true
+  description = <<-EOT
+  Enable GitHub deploy keys for the repository. These are used for Argo CD application syncing.
+
+  Alternatively, you can use a GitHub App to access this desired state repository configured with `var.github_app_enabled`, `var.github_app_id`, and `var.github_app_installation_id`.
+  EOT
+}

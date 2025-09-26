@@ -86,9 +86,17 @@ server:
     repositories: |
 %{ for name, url in application_repos ~}
       - url: ${url}
+%{ if github_deploy_keys_enabled == true ~}
         sshPrivateKeySecret:
           name: argocd-repo-creds-${name}
           key: sshPrivateKey
+%{ else ~}
+        githubAppID: ${tonumber(github_app_id)}
+        githubAppInstallationID: ${tonumber(github_app_installation_id)}
+        githubAppPrivateKeySecret:
+          name: argocd-repo-creds-${name}
+          key: githubAppPrivateKey
+%{ endif ~}
 %{ endfor ~}
     resource.customizations: |
         admissionregistration.k8s.io/MutatingWebhookConfiguration:
@@ -122,12 +130,11 @@ server:
 
 %{ if oidc_enabled == true ~}
     scopes: '${oidc_rbac_scopes}'
-%{ endif ~}
-%{ if saml_enabled == true ~}
+%{ else ~}
+%{   if saml_enabled == true ~}
     scopes: '${saml_rbac_scopes}'
+%{   endif ~}
 %{ endif ~}
-
-    policy.default: role:readonly
 
 repoServer:
   replicas: 2
