@@ -51,6 +51,8 @@ data "aws_ssm_parameter" "github_api_key" {
   count           = !var.github_app_enabled ? 1 : 0
   name            = var.ssm_github_api_key
   with_decryption = true
+
+  provider = aws.config_secrets
 }
 
 # SSM Parameter for GitHub App Authentication
@@ -58,6 +60,8 @@ data "aws_ssm_parameter" "github_app_private_key" {
   count           = local.create_github_webhook && var.github_app_enabled ? 1 : 0
   name            = var.ssm_github_app_private_key
   with_decryption = true
+
+  provider = aws.config_secrets
 }
 
 # We will only need the github provider if we are creating the GitHub webhook with github_repository_webhook.
