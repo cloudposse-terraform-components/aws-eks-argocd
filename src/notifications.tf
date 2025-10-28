@@ -2,6 +2,8 @@ data "aws_ssm_parameters_by_path" "argocd_notifications" {
   for_each        = local.notifications_notifiers_ssm_path
   path            = each.value
   with_decryption = true
+
+  provider = aws.config_secrets
 }
 
 data "aws_ssm_parameter" "slack_notifications" {
@@ -16,6 +18,8 @@ data "aws_ssm_parameter" "github_notifications_app_private_key" {
   count           = local.github_notifications_enabled && var.github_notifications_app_enabled ? 1 : 0
   name            = var.ssm_github_notifications_app_private_key
   with_decryption = true
+
+  provider = aws.config_secrets
 }
 
 module "notifications_templates" {
