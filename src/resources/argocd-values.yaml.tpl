@@ -33,13 +33,14 @@ server:
       alb.ingress.kubernetes.io/backend-protocol: HTTPS
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80},{"HTTPS":443}]'
       alb.ingress.kubernetes.io/ssl-redirect: '443'
-      alb.ingress.kubernetes.io/load-balancer-attributes:
-            routing.http.drop_invalid_header_fields.enabled=true,
-%{ if alb_logs_bucket != "" ~}
-            access_logs.s3.enabled=true,
-            access_logs.s3.bucket=${alb_logs_bucket},
-            access_logs.s3.prefix=${alb_logs_prefix}
-%{ endif ~}
+      alb.ingress.kubernetes.io/load-balancer-attributes: ${join(",", concat(
+        ["routing.http.drop_invalid_header_fields.enabled=true"],
+        alb_logs_bucket != "" ? [
+          "access_logs.s3.enabled=true",
+          "access_logs.s3.bucket=${alb_logs_bucket}",
+          "access_logs.s3.prefix=${alb_logs_prefix}"
+        ] : []
+      ))}
 %{ if forecastle_enabled == true ~}
       forecastle.stakater.com/appName: "ArgoCD"
       forecastle.stakater.com/expose: "true"
