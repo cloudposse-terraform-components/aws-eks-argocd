@@ -263,13 +263,27 @@ variable "webhook_ingress_enabled" {
 variable "webhook_alb_group_name" {
   type        = string
   default     = null
-  description = "ALB group name annotation for the webhook-only Ingress. Typically the existing internet-facing ingress group. Required when `var.webhook_ingress_enabled` is `true`."
+  description = <<-EOT
+  ALB group name annotation (`alb.ingress.kubernetes.io/group.name`) for the
+  webhook-only Ingress. Optional — when null/empty, the annotation is omitted
+  and the controller falls back to its default (per IngressClass + cluster
+  IngressClassParams configuration).
+
+  Note: if the chosen IngressClass's IngressClassParams sets a `group.name`,
+  that value takes precedence over this annotation (AWS LBC precedence rule).
+  EOT
 }
 
 variable "webhook_alb_scheme" {
   type        = string
   default     = "internet-facing"
-  description = "Scheme for the webhook-only Ingress's ALB. Almost always `internet-facing` (the whole point is to expose `/api/webhook` to GitHub)."
+  description = <<-EOT
+  Scheme annotation (`alb.ingress.kubernetes.io/scheme`) for the webhook-only Ingress.
+  Almost always `internet-facing` (the whole point is to expose `/api/webhook` to GitHub).
+
+  Note: if the chosen IngressClass's IngressClassParams sets `scheme`, that
+  value takes precedence over this annotation (AWS LBC precedence rule).
+  EOT
 
   validation {
     condition     = contains(["internet-facing", "internal"], var.webhook_alb_scheme)
@@ -285,6 +299,28 @@ variable "webhook_host" {
   is `true`, falls back to `argocd-webhook.<var.host or generated host>`.
 
   Must resolve to the ALB selected by `var.webhook_alb_group_name`, and the ALB's listener
-  must have a TLS certificate that covers this hostname.
+  must have a TLS certificate that covers this hostname. An empty string is rejected.
   EOT
+
+  validation {
+    condition     = var.webhook_host == null || length(var.webhook_host) > 0
+    error_message = "webhook_host must be either null or a non-empty FQDN."
+  }
+}
+
+variable "webhook_ingress_class_name" {
+  type        = string
+  default     = "alb"
+  description = <<-EOT
+  IngressClass name (`spec.ingressClassName`) on the webhook-only Ingress.
+  Defaults to `alb`. Change this when the default `alb` IngressClass's
+  IngressClassParams hardcodes `group.name`/`scheme` values that override
+  `var.webhook_alb_group_name`/`var.webhook_alb_scheme` and you need a class
+  whose params don't.
+  EOT
+
+  validation {
+    condition     = length(var.webhook_ingress_class_name) > 0
+    error_message = "webhook_ingress_class_name must not be an empty string."
+  }
 }

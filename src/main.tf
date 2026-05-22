@@ -197,6 +197,7 @@ module "argocd" {
         webhook_alb_group_name     = var.webhook_alb_group_name == null ? "" : var.webhook_alb_group_name
         webhook_alb_scheme         = var.webhook_alb_scheme
         webhook_host               = local.webhook_host
+        webhook_ingress_class_name = var.webhook_ingress_class_name
         webhook_ingress_enabled    = var.webhook_ingress_enabled
       }
     ),

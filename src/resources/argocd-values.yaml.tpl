@@ -149,6 +149,11 @@ applicationSet:
 # still need a public endpoint. ArgoCD validates the HMAC signature against
 # `webhook.github.secret` in argocd-secret, so the public surface is one POST endpoint
 # that rejects unsigned/invalid requests.
+#
+# NOTE: when the cluster's IngressClassParams for this class hardcodes group.name/scheme,
+# those values override the per-Ingress annotations below. Use webhook_ingress_class_name
+# to select an IngressClass whose IngressClassParams don't override (or set an empty group)
+# if you need the annotations to take effect.
 extraObjects:
   - apiVersion: networking.k8s.io/v1
     kind: Ingress
@@ -167,7 +172,7 @@ extraObjects:
         external-dns.alpha.kubernetes.io/hostname: ${webhook_host}
         external-dns.alpha.kubernetes.io/ttl: "60"
     spec:
-      ingressClassName: alb
+      ingressClassName: ${webhook_ingress_class_name}
       tls:
         - hosts:
             - ${webhook_host}
