@@ -73,6 +73,12 @@ locals {
   host                              = var.host != "" ? var.host : format("%s.%s", var.name, local.regional_service_discovery_domain)
   url                               = format("https://%s", local.host)
 
+  # When webhook_ingress_enabled is false, webhook_host MUST equal local.host so that
+  # local.webhook_url collapses to the exact same string as `${local.url}/api/webhook`.
+  # This is the opt-in invariant: existing deployments see no plan diff after upgrade.
+  webhook_host = var.webhook_ingress_enabled ? coalesce(var.webhook_host, "argocd-webhook.${local.host}") : local.host
+  webhook_url  = format("https://%s/api/webhook", local.webhook_host)
+
   oidc_config_map = local.oidc_enabled ? {
     server : {
       config : {
@@ -168,6 +174,7 @@ module "argocd" {
         alb_logs_bucket            = var.alb_logs_bucket
         alb_logs_prefix            = var.alb_logs_prefix
         alb_name                   = var.alb_name == null ? "" : var.alb_name
+        alb_scheme                 = var.alb_scheme
         anonymous_enabled          = var.anonymous_enabled
         application_repos          = { for k, v in local.argocd_repositories : k => v.clone_url }
         argocd_host                = local.host
@@ -178,6 +185,7 @@ module "argocd" {
         github_deploy_keys_enabled = local.github_deploy_keys_enabled
         ingress_host               = local.host
         name                       = module.this.name
+        namespace                  = local.kubernetes_namespace
         oidc_enabled               = local.oidc_enabled
         oidc_rbac_scopes           = var.oidc_rbac_scopes
         rbac_default_policy        = var.argocd_rbac_default_policy
@@ -186,6 +194,10 @@ module "argocd" {
         saml_enabled               = local.saml_enabled
         saml_rbac_scopes           = var.saml_rbac_scopes
         service_type               = var.service_type
+        webhook_alb_group_name     = var.webhook_alb_group_name == null ? "" : var.webhook_alb_group_name
+        webhook_alb_scheme         = var.webhook_alb_scheme
+        webhook_host               = local.webhook_host
+        webhook_ingress_enabled    = var.webhook_ingress_enabled
       }
     ),
     # argocd-notifications specific settings

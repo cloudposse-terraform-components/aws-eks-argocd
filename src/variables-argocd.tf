@@ -225,3 +225,66 @@ variable "github_deploy_keys_enabled" {
   Alternatively, you can use a GitHub App to access this desired state repository configured with `var.github_app_enabled`, `var.github_app_id`, and `var.github_app_installation_id`.
   EOT
 }
+
+variable "alb_scheme" {
+  type        = string
+  default     = "internet-facing"
+  description = <<-EOT
+  Scheme of the ALB fronting the argocd-server Ingress. One of `internet-facing` or `internal`.
+
+  Use `internal` when argocd should only be reachable from inside the VPC (e.g. via VPN or
+  a private connectivity mesh). When combined with `var.webhook_ingress_enabled`, the
+  primary UI/API moves internal while `/api/webhook` stays reachable on a separate Ingress.
+  EOT
+
+  validation {
+    condition     = contains(["internet-facing", "internal"], var.alb_scheme)
+    error_message = "alb_scheme must be \"internet-facing\" or \"internal\"."
+  }
+}
+
+variable "webhook_ingress_enabled" {
+  type        = bool
+  default     = false
+  description = <<-EOT
+  Provision a second, path-restricted Ingress exposing only `/api/webhook` on a separate
+  ALB and hostname.
+
+  Intended use: when `var.alb_scheme` is `internal` (argocd UI on a private ALB), GitHub
+  push webhooks can't reach the cluster. Enabling this creates a minimal public Ingress
+  matching only `Host: <var.webhook_host>` AND `Path: /api/webhook`, so the GitHub webhook
+  endpoint stays reachable while the rest of the API/UI does not.
+
+  The component's GitHub webhook resource (`github_repository_webhook.default`) automatically
+  retargets to the new hostname when this is `true`.
+  EOT
+}
+
+variable "webhook_alb_group_name" {
+  type        = string
+  default     = null
+  description = "ALB group name annotation for the webhook-only Ingress. Typically the existing internet-facing ingress group. Required when `var.webhook_ingress_enabled` is `true`."
+}
+
+variable "webhook_alb_scheme" {
+  type        = string
+  default     = "internet-facing"
+  description = "Scheme for the webhook-only Ingress's ALB. Almost always `internet-facing` (the whole point is to expose `/api/webhook` to GitHub)."
+
+  validation {
+    condition     = contains(["internet-facing", "internal"], var.webhook_alb_scheme)
+    error_message = "webhook_alb_scheme must be \"internet-facing\" or \"internal\"."
+  }
+}
+
+variable "webhook_host" {
+  type        = string
+  default     = null
+  description = <<-EOT
+  FQDN for the webhook-only Ingress. If `null` (default) and `var.webhook_ingress_enabled`
+  is `true`, falls back to `argocd-webhook.<var.host or generated host>`.
+
+  Must resolve to the ALB selected by `var.webhook_alb_group_name`, and the ALB's listener
+  must have a TLS certificate that covers this hostname.
+  EOT
+}

@@ -29,7 +29,7 @@ server:
 %{ if alb_name != "" ~}
       alb.ingress.kubernetes.io/load-balancer-name: ${alb_name}
 %{ endif ~}
-      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/scheme: ${alb_scheme}
       alb.ingress.kubernetes.io/backend-protocol: HTTPS
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80},{"HTTPS":443}]'
       alb.ingress.kubernetes.io/ssl-redirect: '443'
@@ -142,3 +142,44 @@ repoServer:
 
 applicationSet:
   replicas: 2
+
+%{ if webhook_ingress_enabled ~}
+# Path-restricted Ingress exposing only /api/webhook on a separate ALB/host.
+# Use case: main argocd-server Ingress is internal-scheme but GitHub push webhooks
+# still need a public endpoint. ArgoCD validates the HMAC signature against
+# `webhook.github.secret` in argocd-secret, so the public surface is one POST endpoint
+# that rejects unsigned/invalid requests.
+extraObjects:
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: ${name}-server-webhook
+      namespace: ${namespace}
+      annotations:
+%{ if webhook_alb_group_name != "" ~}
+        alb.ingress.kubernetes.io/group.name: ${webhook_alb_group_name}
+%{ endif ~}
+        alb.ingress.kubernetes.io/scheme: ${webhook_alb_scheme}
+        alb.ingress.kubernetes.io/backend-protocol: HTTPS
+        alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+        alb.ingress.kubernetes.io/ssl-redirect: '443'
+        alb.ingress.kubernetes.io/load-balancer-attributes: routing.http.drop_invalid_header_fields.enabled=true
+        external-dns.alpha.kubernetes.io/hostname: ${webhook_host}
+        external-dns.alpha.kubernetes.io/ttl: "60"
+    spec:
+      ingressClassName: alb
+      tls:
+        - hosts:
+            - ${webhook_host}
+      rules:
+        - host: ${webhook_host}
+          http:
+            paths:
+              - path: /api/webhook
+                pathType: Exact
+                backend:
+                  service:
+                    name: ${name}-server
+                    port:
+                      name: https
+%{ endif ~}

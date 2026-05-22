@@ -47,7 +47,10 @@ resource "github_repository_webhook" "default" {
   repository = each.value.repository
 
   configuration {
-    url          = format("%s/api/webhook", local.url)
+    # NOTE: local.webhook_url == "${local.url}/api/webhook" when var.webhook_ingress_enabled
+    # is false (the default), so existing deployments see no plan diff after upgrade. When
+    # opted in, this retargets the GitHub webhook to var.webhook_host without a new resource.
+    url          = local.webhook_url
     content_type = "json"
     secret       = local.webhook_github_secret
     insecure_ssl = false
