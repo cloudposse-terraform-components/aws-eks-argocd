@@ -230,16 +230,37 @@ variable "alb_scheme" {
   type        = string
   default     = "internet-facing"
   description = <<-EOT
-  Scheme of the ALB fronting the argocd-server Ingress. One of `internet-facing` or `internal`.
+  Scheme annotation (`alb.ingress.kubernetes.io/scheme`) on the main argocd-server
+  Ingress. One of `internet-facing` or `internal`.
 
-  Use `internal` when argocd should only be reachable from inside the VPC (e.g. via VPN or
-  a private connectivity mesh). When combined with `var.webhook_ingress_enabled`, the
-  primary UI/API moves internal while `/api/webhook` stays reachable on a separate Ingress.
+  Note: this is only the per-Ingress annotation. If the IngressClass selected by
+  `var.alb_ingress_class_name` has an `IngressClassParams` that hardcodes `scheme`,
+  that value takes precedence over this annotation per AWS LB Controller precedence
+  rules. To actually move ArgoCD onto an internal ALB, set BOTH `alb_scheme = "internal"`
+  AND `alb_ingress_class_name` to an IngressClass whose IngressClassParams don't
+  override the scheme (or do enforce `internal`).
   EOT
 
   validation {
     condition     = contains(["internet-facing", "internal"], var.alb_scheme)
     error_message = "alb_scheme must be \"internet-facing\" or \"internal\"."
+  }
+}
+
+variable "alb_ingress_class_name" {
+  type        = string
+  default     = "alb"
+  description = <<-EOT
+  IngressClass name (`spec.ingressClassName`) on the main argocd-server Ingress.
+  Defaults to `alb`. Set to a different IngressClass when the default `alb`
+  IngressClass's IngressClassParams hardcodes `group.name`/`scheme` values that
+  override `var.alb_group_name`/`var.alb_scheme` and you need a class whose
+  params don't.
+  EOT
+
+  validation {
+    condition     = length(var.alb_ingress_class_name) > 0
+    error_message = "alb_ingress_class_name must not be an empty string."
   }
 }
 
@@ -257,6 +278,12 @@ variable "webhook_ingress_enabled" {
 
   The component's GitHub webhook resource (`github_repository_webhook.default`) automatically
   retargets to the new hostname when this is `true`.
+
+  Requires `var.github_webhook_enabled = true` so the HMAC secret used to validate
+  `/api/webhook` payloads is generated — without it, ArgoCD's webhook handler accepts
+  any POST and triggers a sync, which would make the public endpoint an unauthenticated
+  DoS surface. When `github_webhook_enabled = false`, the public Ingress is silently
+  skipped.
   EOT
 }
 
@@ -296,7 +323,9 @@ variable "webhook_host" {
   default     = null
   description = <<-EOT
   FQDN for the webhook-only Ingress. If `null` (default) and `var.webhook_ingress_enabled`
-  is `true`, falls back to `argocd-webhook.<var.host or generated host>`.
+  is `true`, falls back to `argocd-webhook.<regional_service_discovery_domain>` (one
+  label below the regional zone, so a standard single-label wildcard ACM cert covers
+  it).
 
   Must resolve to the ALB selected by `var.webhook_alb_group_name`, and the ALB's listener
   must have a TLS certificate that covers this hostname. An empty string is rejected.

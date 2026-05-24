@@ -76,8 +76,83 @@ locals {
   # When webhook_ingress_enabled is false, webhook_host MUST equal local.host so that
   # local.webhook_url collapses to the exact same string as `${local.url}/api/webhook`.
   # This is the opt-in invariant: existing deployments see no plan diff after upgrade.
-  webhook_host = var.webhook_ingress_enabled ? coalesce(var.webhook_host, "argocd-webhook.${local.host}") : local.host
+  #
+  # When enabled and webhook_host is unset, the fallback is rooted at the regional
+  # service discovery domain (NOT local.host) so the resulting FQDN sits one label
+  # below the regional zone. That matches a standard single-label wildcard ACM cert
+  # (`*.<regional-domain>`). Rooting at local.host instead would produce
+  # `argocd-webhook.argocd.<regional-domain>`, which a single-label wildcard does
+  # not cover.
+  webhook_host = var.webhook_ingress_enabled ? coalesce(var.webhook_host, "argocd-webhook.${local.regional_service_discovery_domain}") : local.host
   webhook_url  = format("https://%s/api/webhook", local.webhook_host)
+
+  # Public `/api/webhook` exposure requires the HMAC secret to exist in argocd-secret.
+  # If `github_webhook_enabled = false` the secret is never generated, so the
+  # ArgoCD webhook handler would accept ANY POST as valid (it only validates the
+  # signature when a secret is configured). Gate the public ingress on both flags
+  # to prevent an inadvertent unauthenticated DoS vector.
+  effective_webhook_ingress_enabled = var.webhook_ingress_enabled && local.github_webhook_enabled
+
+  # Build the path-restricted webhook Ingress in Terraform (not inside the values
+  # template) so it can be safely merged with a user-supplied
+  # `var.chart_values.extraObjects` list. Helm overlays arrays by replacement, so
+  # if we emitted `extraObjects` in the template AND the user emitted their own
+  # via `var.chart_values`, the user's would silently replace ours and the
+  # webhook ingress would never get created.
+  webhook_ingress_extra_objects = local.effective_webhook_ingress_enabled ? [
+    {
+      apiVersion = "networking.k8s.io/v1"
+      kind       = "Ingress"
+      metadata = {
+        name      = "${module.this.name}-server-webhook"
+        namespace = local.kubernetes_namespace
+        annotations = merge(
+          length(coalesce(var.webhook_alb_group_name, "")) > 0 ? {
+            "alb.ingress.kubernetes.io/group.name" = var.webhook_alb_group_name
+          } : {},
+          {
+            "alb.ingress.kubernetes.io/scheme"                   = var.webhook_alb_scheme
+            "alb.ingress.kubernetes.io/backend-protocol"         = "HTTPS"
+            "alb.ingress.kubernetes.io/listen-ports"             = jsonencode([{ HTTPS = 443 }])
+            "alb.ingress.kubernetes.io/ssl-redirect"             = "443"
+            "alb.ingress.kubernetes.io/load-balancer-attributes" = "routing.http.drop_invalid_header_fields.enabled=true"
+            "external-dns.alpha.kubernetes.io/hostname"          = local.webhook_host
+            "external-dns.alpha.kubernetes.io/ttl"               = "60"
+          }
+        )
+      }
+      spec = {
+        ingressClassName = var.webhook_ingress_class_name
+        tls = [{
+          hosts = [local.webhook_host]
+        }]
+        rules = [{
+          host = local.webhook_host
+          http = {
+            paths = [{
+              path     = "/api/webhook"
+              pathType = "Exact"
+              backend = {
+                service = {
+                  name = "${module.this.name}-server"
+                  port = { name = "https" }
+                }
+              }
+            }]
+          }
+        }]
+      }
+    }
+  ] : []
+
+  # Merge our webhook Ingress with any user-supplied chart_values.extraObjects so
+  # both lists land in the final rendered values block instead of clobbering.
+  merged_chart_values = length(local.webhook_ingress_extra_objects) > 0 ? merge(var.chart_values, {
+    extraObjects = concat(
+      try(var.chart_values.extraObjects, []),
+      local.webhook_ingress_extra_objects
+    )
+  }) : var.chart_values
 
   oidc_config_map = local.oidc_enabled ? {
     server : {
@@ -171,6 +246,7 @@ module "argocd" {
       {
         admin_enabled              = var.admin_enabled
         alb_group_name             = var.alb_group_name == null ? "" : var.alb_group_name
+        alb_ingress_class_name     = var.alb_ingress_class_name
         alb_logs_bucket            = var.alb_logs_bucket
         alb_logs_prefix            = var.alb_logs_prefix
         alb_name                   = var.alb_name == null ? "" : var.alb_name
@@ -185,7 +261,6 @@ module "argocd" {
         github_deploy_keys_enabled = local.github_deploy_keys_enabled
         ingress_host               = local.host
         name                       = module.this.name
-        namespace                  = local.kubernetes_namespace
         oidc_enabled               = local.oidc_enabled
         oidc_rbac_scopes           = var.oidc_rbac_scopes
         rbac_default_policy        = var.argocd_rbac_default_policy
@@ -194,11 +269,6 @@ module "argocd" {
         saml_enabled               = local.saml_enabled
         saml_rbac_scopes           = var.saml_rbac_scopes
         service_type               = var.service_type
-        webhook_alb_group_name     = var.webhook_alb_group_name == null ? "" : var.webhook_alb_group_name
-        webhook_alb_scheme         = var.webhook_alb_scheme
-        webhook_host               = local.webhook_host
-        webhook_ingress_class_name = var.webhook_ingress_class_name
-        webhook_ingress_enabled    = var.webhook_ingress_enabled
       }
     ),
     # argocd-notifications specific settings
@@ -215,7 +285,7 @@ module "argocd" {
       local.oidc_config_map,
       local.saml_config_map,
     )),
-    yamlencode(var.chart_values)
+    yamlencode(local.merged_chart_values)
   ])
 
   context = module.this.context
