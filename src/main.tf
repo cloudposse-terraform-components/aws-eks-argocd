@@ -107,7 +107,7 @@ locals {
         name      = "${module.this.name}-server-webhook"
         namespace = local.kubernetes_namespace
         annotations = merge(
-          length(coalesce(var.webhook_alb_group_name, "")) > 0 ? {
+          var.webhook_alb_group_name != null && var.webhook_alb_group_name != "" ? {
             "alb.ingress.kubernetes.io/group.name" = var.webhook_alb_group_name
           } : {},
           {
