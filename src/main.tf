@@ -145,14 +145,27 @@ locals {
     }
   ] : []
 
-  # Merge our webhook Ingress with any user-supplied chart_values.extraObjects so
-  # both lists land in the final rendered values block instead of clobbering.
-  merged_chart_values = length(local.webhook_ingress_extra_objects) > 0 ? merge(var.chart_values, {
+  # Render our webhook Ingress as a SEPARATE Helm values document that comes
+  # AFTER `var.chart_values` in the values list. Helm overlays arrays by
+  # replacement, so we explicitly concat any user-supplied
+  # `chart_values.extraObjects` with our webhook Ingress and emit the combined
+  # list as the last value document — last-wins semantics keep both sides.
+  #
+  # When the webhook is disabled this resolves to an empty string and is
+  # dropped by `compact()`, so `var.chart_values` is the final word and
+  # default-config consumers see zero rendered-values diff.
+  #
+  # Using a conditional yamlencode (instead of a conditional `merge()` of
+  # var.chart_values) avoids Terraform's "inconsistent conditional result
+  # types" error — both branches of the ternary here are `string`, whereas
+  # `merge(var.chart_values, {extraObjects = ...})` vs `var.chart_values`
+  # produces objects with different attribute schemas.
+  webhook_chart_values_supplement = length(local.webhook_ingress_extra_objects) > 0 ? yamlencode({
     extraObjects = concat(
       try(var.chart_values.extraObjects, []),
       local.webhook_ingress_extra_objects
     )
-  }) : var.chart_values
+  }) : ""
 
   oidc_config_map = local.oidc_enabled ? {
     server : {
@@ -285,7 +298,8 @@ module "argocd" {
       local.oidc_config_map,
       local.saml_config_map,
     )),
-    yamlencode(local.merged_chart_values)
+    yamlencode(var.chart_values),
+    local.webhook_chart_values_supplement,
   ])
 
   context = module.this.context
