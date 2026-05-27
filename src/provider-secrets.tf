@@ -15,7 +15,7 @@ provider "aws" {
 }
 
 module "iam_roles_config_secrets" {
-  source  = "../../account-map/modules/iam-roles"
+  source  = "github.com/cloudposse-terraform-components/aws-account-map//src/modules/iam-roles?ref=v1.537.2"
   stage   = var.ssm_store_account
   tenant  = var.ssm_store_account_tenant
   context = module.this.context
