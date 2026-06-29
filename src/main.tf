@@ -73,6 +73,100 @@ locals {
   host                              = var.host != "" ? var.host : format("%s.%s", var.name, local.regional_service_discovery_domain)
   url                               = format("https://%s", local.host)
 
+  # When webhook_ingress_enabled is false, webhook_host MUST equal local.host so that
+  # local.webhook_url collapses to the exact same string as `${local.url}/api/webhook`.
+  # This is the opt-in invariant: existing deployments see no plan diff after upgrade.
+  #
+  # When enabled and webhook_host is unset, the fallback is rooted at the regional
+  # service discovery domain (NOT local.host) so the resulting FQDN sits one label
+  # below the regional zone. That matches a standard single-label wildcard ACM cert
+  # (`*.<regional-domain>`). Rooting at local.host instead would produce
+  # `argocd-webhook.argocd.<regional-domain>`, which a single-label wildcard does
+  # not cover.
+  webhook_host = var.webhook_ingress_enabled ? coalesce(var.webhook_host, "argocd-webhook.${local.regional_service_discovery_domain}") : local.host
+  webhook_url  = format("https://%s/api/webhook", local.webhook_host)
+
+  # Public `/api/webhook` exposure requires the HMAC secret to exist in argocd-secret.
+  # If `github_webhook_enabled = false` the secret is never generated, so the
+  # ArgoCD webhook handler would accept ANY POST as valid (it only validates the
+  # signature when a secret is configured). Gate the public ingress on both flags
+  # to prevent an inadvertent unauthenticated DoS vector.
+  effective_webhook_ingress_enabled = var.webhook_ingress_enabled && local.github_webhook_enabled
+
+  # Build the path-restricted webhook Ingress in Terraform (not inside the values
+  # template) so it can be safely merged with a user-supplied
+  # `var.chart_values.extraObjects` list. Helm overlays arrays by replacement, so
+  # if we emitted `extraObjects` in the template AND the user emitted their own
+  # via `var.chart_values`, the user's would silently replace ours and the
+  # webhook ingress would never get created.
+  webhook_ingress_extra_objects = local.effective_webhook_ingress_enabled ? [
+    {
+      apiVersion = "networking.k8s.io/v1"
+      kind       = "Ingress"
+      metadata = {
+        name      = "${module.this.name}-server-webhook"
+        namespace = local.kubernetes_namespace
+        annotations = merge(
+          var.webhook_alb_group_name != null && var.webhook_alb_group_name != "" ? {
+            "alb.ingress.kubernetes.io/group.name" = var.webhook_alb_group_name
+          } : {},
+          {
+            "alb.ingress.kubernetes.io/scheme"                   = var.webhook_alb_scheme
+            "alb.ingress.kubernetes.io/backend-protocol"         = "HTTPS"
+            "alb.ingress.kubernetes.io/listen-ports"             = jsonencode([{ HTTPS = 443 }])
+            "alb.ingress.kubernetes.io/ssl-redirect"             = "443"
+            "alb.ingress.kubernetes.io/load-balancer-attributes" = "routing.http.drop_invalid_header_fields.enabled=true"
+            "external-dns.alpha.kubernetes.io/hostname"          = local.webhook_host
+            "external-dns.alpha.kubernetes.io/ttl"               = "60"
+          }
+        )
+      }
+      spec = {
+        ingressClassName = var.webhook_ingress_class_name
+        tls = [{
+          hosts = [local.webhook_host]
+        }]
+        rules = [{
+          host = local.webhook_host
+          http = {
+            paths = [{
+              path     = "/api/webhook"
+              pathType = "Exact"
+              backend = {
+                service = {
+                  name = "${module.this.name}-server"
+                  port = { name = "https" }
+                }
+              }
+            }]
+          }
+        }]
+      }
+    }
+  ] : []
+
+  # Render our webhook Ingress as a SEPARATE Helm values document that comes
+  # AFTER `var.chart_values` in the values list. Helm overlays arrays by
+  # replacement, so we explicitly concat any user-supplied
+  # `chart_values.extraObjects` with our webhook Ingress and emit the combined
+  # list as the last value document — last-wins semantics keep both sides.
+  #
+  # When the webhook is disabled this resolves to an empty string and is
+  # dropped by `compact()`, so `var.chart_values` is the final word and
+  # default-config consumers see zero rendered-values diff.
+  #
+  # Using a conditional yamlencode (instead of a conditional `merge()` of
+  # var.chart_values) avoids Terraform's "inconsistent conditional result
+  # types" error — both branches of the ternary here are `string`, whereas
+  # `merge(var.chart_values, {extraObjects = ...})` vs `var.chart_values`
+  # produces objects with different attribute schemas.
+  webhook_chart_values_supplement = length(local.webhook_ingress_extra_objects) > 0 ? yamlencode({
+    extraObjects = concat(
+      try(var.chart_values.extraObjects, []),
+      local.webhook_ingress_extra_objects
+    )
+  }) : ""
+
   oidc_config_map = local.oidc_enabled ? {
     server : {
       config : {
@@ -165,9 +259,11 @@ module "argocd" {
       {
         admin_enabled              = var.admin_enabled
         alb_group_name             = var.alb_group_name == null ? "" : var.alb_group_name
+        alb_ingress_class_name     = var.alb_ingress_class_name
         alb_logs_bucket            = var.alb_logs_bucket
         alb_logs_prefix            = var.alb_logs_prefix
         alb_name                   = var.alb_name == null ? "" : var.alb_name
+        alb_scheme                 = var.alb_scheme
         anonymous_enabled          = var.anonymous_enabled
         application_repos          = { for k, v in local.argocd_repositories : k => v.clone_url }
         argocd_host                = local.host
@@ -202,7 +298,8 @@ module "argocd" {
       local.oidc_config_map,
       local.saml_config_map,
     )),
-    yamlencode(var.chart_values)
+    yamlencode(var.chart_values),
+    local.webhook_chart_values_supplement,
   ])
 
   context = module.this.context

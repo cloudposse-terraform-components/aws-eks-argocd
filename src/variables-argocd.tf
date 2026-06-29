@@ -225,3 +225,131 @@ variable "github_deploy_keys_enabled" {
   Alternatively, you can use a GitHub App to access this desired state repository configured with `var.github_app_enabled`, `var.github_app_id`, and `var.github_app_installation_id`.
   EOT
 }
+
+variable "alb_scheme" {
+  type        = string
+  default     = "internet-facing"
+  description = <<-EOT
+  Scheme annotation (`alb.ingress.kubernetes.io/scheme`) on the main argocd-server
+  Ingress. One of `internet-facing` or `internal`.
+
+  Note: this is only the per-Ingress annotation. If the IngressClass selected by
+  `var.alb_ingress_class_name` has an `IngressClassParams` that hardcodes `scheme`,
+  that value takes precedence over this annotation per AWS LB Controller precedence
+  rules. To actually move ArgoCD onto an internal ALB, set BOTH `alb_scheme = "internal"`
+  AND `alb_ingress_class_name` to an IngressClass whose IngressClassParams don't
+  override the scheme (or do enforce `internal`).
+  EOT
+
+  validation {
+    condition     = contains(["internet-facing", "internal"], var.alb_scheme)
+    error_message = "alb_scheme must be \"internet-facing\" or \"internal\"."
+  }
+}
+
+variable "alb_ingress_class_name" {
+  type        = string
+  default     = "alb"
+  description = <<-EOT
+  IngressClass name (`spec.ingressClassName`) on the main argocd-server Ingress.
+  Defaults to `alb`. Set to a different IngressClass when the default `alb`
+  IngressClass's IngressClassParams hardcodes `group.name`/`scheme` values that
+  override `var.alb_group_name`/`var.alb_scheme` and you need a class whose
+  params don't.
+  EOT
+
+  validation {
+    condition     = length(var.alb_ingress_class_name) > 0
+    error_message = "alb_ingress_class_name must not be an empty string."
+  }
+}
+
+variable "webhook_ingress_enabled" {
+  type        = bool
+  default     = false
+  description = <<-EOT
+  Provision a second, path-restricted Ingress exposing only `/api/webhook` on a separate
+  ALB and hostname.
+
+  Intended use: when `var.alb_scheme` is `internal` (argocd UI on a private ALB), GitHub
+  push webhooks can't reach the cluster. Enabling this creates a minimal public Ingress
+  matching only `Host: <var.webhook_host>` AND `Path: /api/webhook`, so the GitHub webhook
+  endpoint stays reachable while the rest of the API/UI does not.
+
+  The component's GitHub webhook resource (`github_repository_webhook.default`) automatically
+  retargets to the new hostname when this is `true`.
+
+  Requires `var.github_webhook_enabled = true` so the HMAC secret used to validate
+  `/api/webhook` payloads is generated — without it, ArgoCD's webhook handler accepts
+  any POST and triggers a sync, which would make the public endpoint an unauthenticated
+  DoS surface. When `github_webhook_enabled = false`, the public Ingress is silently
+  skipped.
+  EOT
+}
+
+variable "webhook_alb_group_name" {
+  type        = string
+  default     = null
+  description = <<-EOT
+  ALB group name annotation (`alb.ingress.kubernetes.io/group.name`) for the
+  webhook-only Ingress. Optional — when null/empty, the annotation is omitted
+  and the controller falls back to its default (per IngressClass + cluster
+  IngressClassParams configuration).
+
+  Note: if the chosen IngressClass's IngressClassParams sets a `group.name`,
+  that value takes precedence over this annotation (AWS LBC precedence rule).
+  EOT
+}
+
+variable "webhook_alb_scheme" {
+  type        = string
+  default     = "internet-facing"
+  description = <<-EOT
+  Scheme annotation (`alb.ingress.kubernetes.io/scheme`) for the webhook-only Ingress.
+  Almost always `internet-facing` (the whole point is to expose `/api/webhook` to GitHub).
+
+  Note: if the chosen IngressClass's IngressClassParams sets `scheme`, that
+  value takes precedence over this annotation (AWS LBC precedence rule).
+  EOT
+
+  validation {
+    condition     = contains(["internet-facing", "internal"], var.webhook_alb_scheme)
+    error_message = "webhook_alb_scheme must be \"internet-facing\" or \"internal\"."
+  }
+}
+
+variable "webhook_host" {
+  type        = string
+  default     = null
+  description = <<-EOT
+  FQDN for the webhook-only Ingress. If `null` (default) and `var.webhook_ingress_enabled`
+  is `true`, falls back to `argocd-webhook.<regional_service_discovery_domain>` (one
+  label below the regional zone, so a standard single-label wildcard ACM cert covers
+  it).
+
+  Must resolve to the ALB selected by `var.webhook_alb_group_name`, and the ALB's listener
+  must have a TLS certificate that covers this hostname. An empty string is rejected.
+  EOT
+
+  validation {
+    condition     = var.webhook_host == null || length(var.webhook_host) > 0
+    error_message = "webhook_host must be either null or a non-empty FQDN."
+  }
+}
+
+variable "webhook_ingress_class_name" {
+  type        = string
+  default     = "alb"
+  description = <<-EOT
+  IngressClass name (`spec.ingressClassName`) on the webhook-only Ingress.
+  Defaults to `alb`. Change this when the default `alb` IngressClass's
+  IngressClassParams hardcodes `group.name`/`scheme` values that override
+  `var.webhook_alb_group_name`/`var.webhook_alb_scheme` and you need a class
+  whose params don't.
+  EOT
+
+  validation {
+    condition     = length(var.webhook_ingress_class_name) > 0
+    error_message = "webhook_ingress_class_name must not be an empty string."
+  }
+}
